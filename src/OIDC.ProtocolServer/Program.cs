@@ -58,32 +58,8 @@ internal static class Startup
                 options.UseEntityFrameworkCore()
                        .UseDbContext<ApplicationDbContext>();
             })
-            //.AddClient(options =>
-            //{
-            //    options.AllowAuthorizationCodeFlow();
-
-            //    options.UseWebProviders()
-            //        .UseActiveDirectoryFederationServices(adfs =>
-            //        {
-            //            adfs.Configure(adfsOptions =>
-            //            {
-            //                builder.Configuration.GetSection("Authentication:ADFS").Bind(adfsOptions);
-            //            });
-            //        });
-
-            //    if (builder.Environment.IsDevelopment())
-            //    {
-            //        options.AddDevelopmentEncryptionCertificate()
-            //            .AddDevelopmentSigningCertificate();
-            //    }
-
-            //    options.UseAspNetCore()
-            //        .EnableStatusCodePagesIntegration()
-            //        .EnableRedirectionEndpointPassthrough()
-            //        .EnablePostLogoutRedirectionEndpointPassthrough();
-            //})
-            //.AddServer(options =>
-            //{
+            .AddServer(options =>
+            {
             //    // Enable the authorization, device, introspection,
             //    // logout, token, userinfo and verification endpoints.
             //    options.SetAuthorizationEndpointUris("connect/authorize")
@@ -120,7 +96,7 @@ internal static class Startup
             //           .EnableTokenEndpointPassthrough()
             //           .EnableUserinfoEndpointPassthrough()
             //           .EnableVerificationEndpointPassthrough();
-            //})
+            })
 
             // Register the OpenIddict validation components.
             .AddValidation(options =>

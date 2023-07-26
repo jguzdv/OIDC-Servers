@@ -19,8 +19,4 @@
 		<PackageReference Include="OpenIdDict.EntityFrameworkCore" Version="4.4.0" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="Web\Controllers\" />
-	</ItemGroup>
-
 </Project>
