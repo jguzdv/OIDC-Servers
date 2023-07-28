@@ -42,7 +42,7 @@ internal static class Startup
         })
             .AddOpenIdConnect(options =>
             {
-                builder.Configuration.GetSection("Authentication:ADFS").Bind(options);
+                builder.Configuration.GetSection("Authentication:OIDC").Bind(options);
             })
             .AddCookie(options =>
             {
@@ -60,42 +60,43 @@ internal static class Startup
             })
             .AddServer(options =>
             {
-            //    // Enable the authorization, device, introspection,
-            //    // logout, token, userinfo and verification endpoints.
-            //    options.SetAuthorizationEndpointUris("connect/authorize")
-            //           .SetDeviceEndpointUris("connect/device")
-            //           .SetIntrospectionEndpointUris("connect/introspect")
-            //           .SetLogoutEndpointUris("connect/logout")
-            //           .SetTokenEndpointUris("connect/token")
-            //           .SetUserinfoEndpointUris("connect/userinfo")
-            //           .SetVerificationEndpointUris("connect/verify");
+                // Enable the authorization, device, introspection,
+                // logout, token, userinfo and verification endpoints.
+                options.SetAuthorizationEndpointUris("connect/authorize")
+                       .SetDeviceEndpointUris("connect/device")
+                       .SetIntrospectionEndpointUris("connect/introspect")
+                       .SetTokenEndpointUris("connect/token")
+                       .SetUserinfoEndpointUris("connect/userinfo")
+                       .SetVerificationEndpointUris("connect/verify")
+                       .SetLogoutEndpointUris("connect/logout");
 
-            //    // Note: this sample uses the code, device code, password and refresh token flows, but you
-            //    // can enable the other flows if you need to support implicit or client credentials.
-            //    options.AllowAuthorizationCodeFlow()
-            //           .AllowDeviceCodeFlow()
-            //           .AllowPasswordFlow()
-            //           .AllowRefreshTokenFlow();
 
-            //    if (builder.Environment.IsDevelopment()) {
-            //        options.AddDevelopmentEncryptionCertificate()
-            //               .AddDevelopmentSigningCertificate();
-            //    } 
-            //    else
-            //    {
-            //        //TODO: Load keys protected keys from storage - see through auto-rollover
-            //    }
+                options.AllowAuthorizationCodeFlow()
+                       .AllowDeviceCodeFlow()
+                       .AllowRefreshTokenFlow();
 
-            //    options.UseDataProtection();
 
-            //    // Register the ASP.NET Core host and configure the ASP.NET Core-specific options.
-            //    options.UseAspNetCore()
-            //           .EnableStatusCodePagesIntegration()
-            //           .EnableAuthorizationEndpointPassthrough()
-            //           .EnableLogoutEndpointPassthrough()
-            //           .EnableTokenEndpointPassthrough()
-            //           .EnableUserinfoEndpointPassthrough()
-            //           .EnableVerificationEndpointPassthrough();
+                if (builder.Environment.IsDevelopment())
+                {
+                    options.AddDevelopmentEncryptionCertificate()
+                           .AddDevelopmentSigningCertificate();
+                }
+                else
+                {
+                    //TODO: Load keys protected keys from storage - see through auto-rollover
+                }
+
+
+                options.UseDataProtection();
+
+                // Register the ASP.NET Core host and configure the ASP.NET Core-specific options.
+                options.UseAspNetCore()
+                       .EnableStatusCodePagesIntegration()
+                       .EnableAuthorizationEndpointPassthrough()
+                       .EnableLogoutEndpointPassthrough()
+                       .EnableTokenEndpointPassthrough()
+                       .EnableUserinfoEndpointPassthrough()
+                       .EnableVerificationEndpointPassthrough();
             })
 
             // Register the OpenIddict validation components.
