@@ -21,6 +21,6 @@ public class ActiveDirectoryClaimProvider : IClaimProvider
             .Intersect(claimTypes, StringComparer.OrdinalIgnoreCase)
             .Any();
 
-    public Task<List<(string Type, string Value)>> GetClaims(ClaimsPrincipal currentUser, CancellationToken ct)
-        =>Task.FromResult(_provider.GetClaims(currentUser));
+    public Task<List<(string Type, string Value)>> GetClaims(ClaimsPrincipal currentUser, IEnumerable<string> claimTypes, CancellationToken ct)
+        =>Task.FromResult(_provider.GetClaims(currentUser, claimTypes));
 }

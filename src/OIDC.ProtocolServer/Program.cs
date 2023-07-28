@@ -1,7 +1,10 @@
 using JGUZDV.OIDC.ProtocolServer;
+using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
+using OpenIddict.Abstractions;
+using OpenIddict.EntityFrameworkCore.Models;
 using System.IdentityModel.Tokens.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,7 +12,10 @@ builder.ConfigureServices();
 
 var app = builder.Build();
 app.Configure();
-app.Run();
+#if DEBUG
+await Startup.InitializeSamples(app);
+#endif
+await app.RunAsync();
 
 
 
@@ -106,6 +112,8 @@ internal static class Startup
                 options.UseDataProtection();
                 options.UseAspNetCore();
             });
+
+        services.AddClaimProvider<ActiveDirectoryClaimProvider>();
     }
 
     public static void Configure(this WebApplication app)
@@ -133,4 +141,30 @@ internal static class Startup
         app.MapDefaultControllerRoute();
         app.MapRazorPages();
     }
+
+#if DEBUG
+    internal static async Task InitializeSamples(WebApplication app)
+    {
+        using var scope = app.Services.CreateScope();
+        var applicationManager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
+        var sampleClient = await applicationManager.FindByClientIdAsync("sample", CancellationToken.None);
+        if (sampleClient != null)
+        {
+            await applicationManager.DeleteAsync(sampleClient);
+        }
+
+        await applicationManager.CreateAsync(new OpenIddictApplicationDescriptor
+        {
+            ClientId = "sample",
+            RedirectUris = { new Uri("https://localhost:6001") },
+            Permissions =
+            {
+                OpenIddictConstants.Permissions.Endpoints.Authorization,
+                OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
+                OpenIddictConstants.Permissions.ResponseTypes.Code,
+            },
+            
+        });
+    }
+#endif
 }

@@ -1,15 +1,11 @@
-﻿using Azure.Core;
+﻿using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
-using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using static OpenIddict.Abstractions.OpenIddictConstants;
-using System.Security.Claims;
-using Microsoft.AspNetCore;
-using JGUZDV.OIDC.ProtocolServer.Web.Mvc;
 
 namespace JGUZDV.OIDC.ProtocolServer.Web.Controllers;
 
@@ -32,7 +28,7 @@ public class ConnectController : Controller
     [HttpGet("~/connect/authorize")]
     [HttpPost("~/connect/authorize")]
     [IgnoreAntiforgeryToken]
-    public async Task<IActionResult> Authorize()
+    public async Task<IActionResult> Authorize([FromServices]IEnumerable<IClaimProvider> claimProviders)
     {
         var request = HttpContext.GetOpenIddictServerRequest() ??
             throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
