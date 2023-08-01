@@ -7,7 +7,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{9D9E1093-74C
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OIDC.AttributeProxy", "src\OIDC.AttributeProxy\OIDC.AttributeProxy.csproj", "{0B051EAE-FEB5-4968-AA5D-3FBEEA9E92AB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OIDC.ProtocolServer", "src\OIDC.ProtocolServer\OIDC.ProtocolServer.csproj", "{34B29786-EBBF-4DC1-8C27-76A4E8C52BFC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OIDC.ProtocolServer", "src\OIDC.ProtocolServer\OIDC.ProtocolServer.csproj", "{34B29786-EBBF-4DC1-8C27-76A4E8C52BFC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{54B8C04A-EBA9-4F04-AE45-CACE10A50A24}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitignore = .gitignore
+		LICENSE = LICENSE
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,5 +38,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{0B051EAE-FEB5-4968-AA5D-3FBEEA9E92AB} = {9D9E1093-74C3-44F3-B368-EE5062508CF6}
 		{34B29786-EBBF-4DC1-8C27-76A4E8C52BFC} = {9D9E1093-74C3-44F3-B368-EE5062508CF6}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {07A44CDC-6E0B-4FD0-97BA-453B23FED63F}
 	EndGlobalSection
 EndGlobal

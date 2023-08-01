@@ -1,20 +1,27 @@
+using System.IdentityModel.Tokens.Jwt;
+
+using JGUZDV.ActiveDirectory.ClaimProvider.PropertyConverters;
 using JGUZDV.OIDC.ProtocolServer;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
+using JGUZDV.OIDC.ProtocolServer.Configuration;
+
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
+
 using OpenIddict.Abstractions;
-using OpenIddict.EntityFrameworkCore.Models;
-using System.IdentityModel.Tokens.Jwt;
+using static OpenIddict.Abstractions.OpenIddictConstants;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.ConfigureServices();
 
 var app = builder.Build();
 app.Configure();
+
 #if DEBUG
 await Startup.InitializeSamples(app);
 #endif
+
 await app.RunAsync();
 
 
@@ -52,8 +59,8 @@ internal static class Startup
             })
             .AddCookie(options =>
             {
-                options.LoginPath = "/login";
-                options.LogoutPath = "/logout";
+                options.LoginPath = "/authn/login";
+                options.LogoutPath = "/authn/logout";
                 options.ExpireTimeSpan = TimeSpan.FromMinutes(5);
                 options.SlidingExpiration = false;
             });
@@ -113,7 +120,29 @@ internal static class Startup
                 options.UseAspNetCore();
             });
 
-        services.AddClaimProvider<ActiveDirectoryClaimProvider>();
+        services
+            .AddOptions<ProtocolServerOptions>()
+            .BindConfiguration("ProtocolServer");
+            
+
+        services
+            .AddActiveDirectoryClaimProvider(c =>
+            {
+                var adConfigSection = builder.Configuration.GetSection("ActiveDirectory");
+                adConfigSection.Bind(c);
+                c.UserClaimType = builder.Configuration["ProtocolServer:UserClaimType"];
+
+                c.PropertyConverters.Add("zdvStudentID", nameof(StringConverter));
+
+                c.ClaimSources.Add(new("matriculation_number", "zdvStudentID"));
+
+                c.ClaimSources.RemoveAll(x => x.ClaimType.Equals("role", StringComparison.OrdinalIgnoreCase));
+                c.ClaimSources.Add(new("role", "msds-tokenGroupNamesGlobalAndUniversal")
+                {
+                    ClaimValueDenyList = new List<string> { "^aobj_.+$", "^www-.+-m$" }
+                });
+            })
+            .AddClaimProvider<ActiveDirectoryClaimProviderFacade>();
     }
 
     public static void Configure(this WebApplication app)
@@ -159,9 +188,9 @@ internal static class Startup
             RedirectUris = { new Uri("https://localhost:6001") },
             Permissions =
             {
-                OpenIddictConstants.Permissions.Endpoints.Authorization,
-                OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
-                OpenIddictConstants.Permissions.ResponseTypes.Code,
+                Permissions.Endpoints.Authorization,
+                Permissions.GrantTypes.AuthorizationCode,
+                Permissions.ResponseTypes.Code,
             },
             
         });

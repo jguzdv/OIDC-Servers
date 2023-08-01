@@ -5,7 +5,7 @@ namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders
 {
     public interface IClaimProvider
     {
-        Task<List<(string Type, string Value)>> GetClaims(ClaimsPrincipal currentUser, IEnumerable<string> claimTypes, CancellationToken ct);
+        Task<List<(string Type, string Value)>> GetClaimsAsync(ClaimsPrincipal currentUser, IEnumerable<string> claimTypes, CancellationToken ct);
 
         bool CanProvideAnyOf(IEnumerable<string> claimTypes);
     }
