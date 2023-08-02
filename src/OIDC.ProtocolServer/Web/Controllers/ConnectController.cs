@@ -104,28 +104,45 @@ public class ConnectController : Controller
 
 
         // Create the claims-based identity that will be used by OpenIddict to generate tokens.
-        var identity = await CreateIdentityAsync(oidcRequest, userId, clientId, authorizations);
+        var identity = await CreateIdentityAsync(oidcRequest, userId, clientId, authorizations, claimProviders, ct);
         return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }
 
-    private async Task<ClaimsIdentity> CreateIdentityAsync(OpenIddictRequest oidcRequest, string userId, string clientId, List<object> authorizations)
+    private async Task<ClaimsIdentity> CreateIdentityAsync(OpenIddictRequest oidcRequest, string userId, string clientId,
+        List<object> authorizations, IEnumerable<IClaimProvider> claimProviders, CancellationToken ct)
     {
+        var requestedScopes = oidcRequest.GetScopes();
+        var requestedClaims = new List<string>();
+
+        foreach(var s in requestedScopes)
+        {
+            if (_options.Value.ScopeClaims.TryGetValue(s, out var claims))
+                requestedClaims.AddRange(claims);
+        }
+
+        var userClaims = new List<(string Type, string Value)>();
+        foreach (var cp in claimProviders)
+        {
+            var claims = await cp.GetClaimsAsync(User, requestedClaims, ct);
+            userClaims.AddRange(claims);
+        }
+        
+
         var identity = new ClaimsIdentity(
                 authenticationType: TokenValidationParameters.DefaultAuthenticationType,
                 nameType: Claims.Name,
                 roleType: Claims.Role);
 
-        // Add the claims that will be persisted in the tokens.
-        identity.SetClaim(Claims.Subject, await _userManager.GetUserIdAsync(user))
-                .SetClaim(Claims.Email, await _userManager.GetEmailAsync(user))
-                .SetClaim(Claims.Name, await _userManager.GetUserNameAsync(user))
-                .SetClaims(Claims.Role, (await _userManager.GetRolesAsync(user)).ToImmutableArray());
+        foreach(var c in userClaims)
+        {
+            identity.SetClaim(c.Type, c.Value);
+        }
 
         // Note: in this sample, the granted scopes match the requested scope
         // but you may want to allow the user to uncheck specific scopes.
         // For that, simply restrict the list of scopes before calling SetScopes.
         identity.SetScopes(oidcRequest.GetScopes());
-        identity.SetResources(await _scopeManager.ListResourcesAsync(identity.GetScopes()).ToListAsync());
+        identity.SetResources(await _scopeManager.ListResourcesAsync(identity.GetScopes()).ToListAsync(ct));
 
         // Automatically create a permanent authorization to avoid requiring explicit consent
         // for future authorization or token requests containing the same scopes.

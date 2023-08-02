@@ -176,7 +176,9 @@ internal static class Startup
     {
         using var scope = app.Services.CreateScope();
         var applicationManager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
-        var sampleClient = await applicationManager.FindByClientIdAsync("sample", CancellationToken.None);
+        var scopeManager = scope.ServiceProvider.GetRequiredService<IOpenIddictScopeManager>();
+
+        var sampleClient = await applicationManager.FindByClientIdAsync("sample");
         if (sampleClient != null)
         {
             await applicationManager.DeleteAsync(sampleClient);
@@ -188,11 +190,23 @@ internal static class Startup
             RedirectUris = { new Uri("https://localhost:6001") },
             Permissions =
             {
+                Permissions.Prefixes.Scope + "sample",
                 Permissions.Endpoints.Authorization,
                 Permissions.GrantTypes.AuthorizationCode,
                 Permissions.ResponseTypes.Code,
-            },
-            
+            }
+        });
+
+        var sampleScope = await scopeManager.FindByNameAsync("sample");
+        if (sampleScope != null)
+        {
+            await scopeManager.DeleteAsync(sampleScope);
+        }
+
+        await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
+        {
+            Name = "sample",
+            Description = Permissions.
         });
     }
 #endif

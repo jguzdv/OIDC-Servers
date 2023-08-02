@@ -9,5 +9,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Configuration
         [NotNull]
         public string? UserClaimType { get; set; }
         public string DefaultConsentType { get; set; } = ConsentTypes.Implicit;
+
+        public Dictionary<string, List<string>> ScopeClaims { get; set; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
     }
 }
