@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 
+using JGUZDV.ActiveDirectory.ClaimProvider.Configuration;
 using JGUZDV.ActiveDirectory.ClaimProvider.PropertyConverters;
 using JGUZDV.OIDC.ProtocolServer;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
@@ -122,26 +123,40 @@ internal static class Startup
 
         services
             .AddOptions<ProtocolServerOptions>()
-            .BindConfiguration("ProtocolServer");
-            
-
-        services
-            .AddActiveDirectoryClaimProvider(c =>
+            .BindConfiguration("ProtocolServer")
+            .Configure(opt =>
             {
-                var adConfigSection = builder.Configuration.GetSection("ActiveDirectory");
-                adConfigSection.Bind(c);
-                c.UserClaimType = builder.Configuration["ProtocolServer:UserClaimType"];
+                opt.PropertyConverters.Add("zdvStudentID", nameof(StringConverter));
 
-                c.PropertyConverters.Add("zdvStudentID", nameof(StringConverter));
-
-                c.ClaimSources.Add(new("matriculation_number", "zdvStudentID"));
-
-                c.ClaimSources.RemoveAll(x => x.ClaimType.Equals("role", StringComparison.OrdinalIgnoreCase));
-                c.ClaimSources.Add(new("role", "msds-tokenGroupNamesGlobalAndUniversal")
+                opt.ClaimSources.Add(new("matriculation_number", "zdvStudentID"));
+                opt.ClaimSources.Add(new("role", "msds-tokenGroupNamesGlobalAndUniversal")
                 {
                     ClaimValueDenyList = new List<string> { "^aobj_.+$", "^www-.+-m$" }
                 });
             })
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddOptions<ActiveDirectoryOptions>()
+            .BindConfiguration("ActiveDirectory")
+            .PostConfigure<ProtocolServerOptions>((opt, pso) =>
+            {
+                opt.UserClaimType = pso.UserClaimType;
+
+                foreach (var conv in pso.PropertyConverters)
+                    opt.PropertyConverters[conv.Key] = conv.Value;
+
+                foreach (var src in pso.ClaimSources)
+                {
+                    opt.ClaimSources.RemoveAll(c => c.ClaimType.Equals(src.ClaimType, StringComparison.OrdinalIgnoreCase));
+                    opt.ClaimSources.Add(src);
+                }
+            })
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services
+            .AddActiveDirectoryClaimProvider()
             .AddClaimProvider<ActiveDirectoryClaimProviderFacade>();
     }
 
@@ -194,7 +209,8 @@ internal static class Startup
                 Permissions.Endpoints.Authorization,
                 Permissions.GrantTypes.AuthorizationCode,
                 Permissions.ResponseTypes.Code,
-            }
+            },
+            ConsentType = ConsentTypes.Implicit
         });
 
         var sampleScope = await scopeManager.FindByNameAsync("sample");
@@ -205,8 +221,7 @@ internal static class Startup
 
         await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
         {
-            Name = "sample",
-            Description = Permissions.
+            Name = "sample"
         });
     }
 #endif

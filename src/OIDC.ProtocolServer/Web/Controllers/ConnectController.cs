@@ -62,7 +62,7 @@ public class ConnectController : Controller
         // Retrieve the application details from the database.
         var application = await _applicationManager.FindByClientIdAsync(oidcRequest.ClientId!, ct) ??
             throw new InvalidOperationException("Details concerning the calling client application cannot be found.");
-        var clientId = await _applicationManager.GetIdAsync(application, ct);
+        var clientUuid = await _applicationManager.GetIdAsync(application, ct);
 
         var userId = User.GetClaim(_options.Value.UserClaimType) ??
             throw new InvalidOperationException($"The user is missing the claim {_options.Value.UserClaimType}.");
@@ -71,7 +71,7 @@ public class ConnectController : Controller
         // Retrieve the permanent authorizations associated with the user and the calling client application.
         var authorizations = await _authorizationManager.FindAsync(
                 subject: userId,
-                client: clientId!,
+                client: clientUuid!,
                 status: Statuses.Valid,
                 type: AuthorizationTypes.Permanent,
                 scopes: oidcRequest.GetScopes(),
@@ -104,11 +104,11 @@ public class ConnectController : Controller
 
 
         // Create the claims-based identity that will be used by OpenIddict to generate tokens.
-        var identity = await CreateIdentityAsync(oidcRequest, userId, clientId, authorizations, claimProviders, ct);
+        var identity = await CreateIdentityAsync(oidcRequest, userId, clientUuid!, authorizations, claimProviders, ct);
         return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }
 
-    private async Task<ClaimsIdentity> CreateIdentityAsync(OpenIddictRequest oidcRequest, string userId, string clientId,
+    private async Task<ClaimsIdentity> CreateIdentityAsync(OpenIddictRequest oidcRequest, string userId, string clientUuid,
         List<object> authorizations, IEnumerable<IClaimProvider> claimProviders, CancellationToken ct)
     {
         var requestedScopes = oidcRequest.GetScopes();
@@ -150,7 +150,7 @@ public class ConnectController : Controller
         authorization ??= await _authorizationManager.CreateAsync(
             identity: identity,
             subject: userId,
-            client: clientId,
+            client: clientUuid,
             type: AuthorizationTypes.Permanent,
             scopes: identity.GetScopes());
 
@@ -397,44 +397,52 @@ public class ConnectController : Controller
     //        throw new InvalidOperationException("The specified grant type is not supported.");
     //    }
 
-    private static IEnumerable<string> GetDestinations(Claim claim)
+    private static readonly IEnumerable<string> BothTokens = new[] { Destinations.IdentityToken, Destinations.AccessToken };
+    private static readonly IEnumerable<string> AccessToken = new[] { Destinations.AccessToken };
+
+    private IEnumerable<string> GetDestinations(Claim claim)
     {
         // Note: by default, claims are NOT automatically included in the access and identity tokens.
         // To allow OpenIddict to serialize them, you must attach them a destination, that specifies
         // whether they should be included in access tokens, in identity tokens or in both.
 
-        switch (claim.Type)
-        {
-            case Claims.Name:
-                yield return Destinations.AccessToken;
+        // TODO: Scope mit einbeziehen!
+        return _options.Value.IdTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase) 
+            ? BothTokens 
+            : AccessToken;
 
-                if (claim.Subject.HasScope(Scopes.Profile))
-                    yield return Destinations.IdentityToken;
+        //switch (claim.Type)
+        //{
+        //    case Claims.Name:
+        //        yield return Destinations.AccessToken;
 
-                yield break;
+        //        if (claim.Subject.HasScope(Scopes.Profile))
+        //            yield return Destinations.IdentityToken;
 
-            case Claims.Email:
-                yield return Destinations.AccessToken;
+        //        yield break;
 
-                if (claim.Subject.HasScope(Scopes.Email))
-                    yield return Destinations.IdentityToken;
+        //    case Claims.Email:
+        //        yield return Destinations.AccessToken;
 
-                yield break;
+        //        if (claim.Subject.HasScope(Scopes.Email))
+        //            yield return Destinations.IdentityToken;
 
-            case Claims.Role:
-                yield return Destinations.AccessToken;
+        //        yield break;
 
-                if (claim.Subject.HasScope(Scopes.Roles))
-                    yield return Destinations.IdentityToken;
+        //    case Claims.Role:
+        //        yield return Destinations.AccessToken;
 
-                yield break;
+        //        if (claim.Subject.HasScope(Scopes.Roles))
+        //            yield return Destinations.IdentityToken;
 
-            // Never include the security stamp in the access and identity tokens, as it's a secret value.
-            case "AspNet.Identity.SecurityStamp": yield break;
+        //        yield break;
 
-            default:
-                yield return Destinations.AccessToken;
-                yield break;
-        }
+        //    // Never include the security stamp in the access and identity tokens, as it's a secret value.
+        //    case "AspNet.Identity.SecurityStamp": yield break;
+
+        //    default:
+        //        yield return Destinations.AccessToken;
+        //        yield break;
+        //}
     }
 }
