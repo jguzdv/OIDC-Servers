@@ -121,11 +121,6 @@ public class ConnectController : Controller
                 requestedClaims.AddRange(claims);
         }
 
-        requestedClaims = requestedClaims
-            .Concat(ActiveDirectory.ClaimProvider.Configuration.Defaults.KnownConverters.Keys)
-            .Distinct()
-            .ToList();
-
         var userClaims = new List<(string Type, string Value)>();
         foreach (var cp in claimProviders)
         {
