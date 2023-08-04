@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Text.Json;
 
 using JGUZDV.ActiveDirectory.ClaimProvider.Configuration;
 using JGUZDV.ActiveDirectory.ClaimProvider.PropertyConverters;
@@ -9,6 +10,7 @@ using JGUZDV.OIDC.ProtocolServer.Configuration;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 using OpenIddict.Abstractions;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -124,32 +126,22 @@ internal static class Startup
         services
             .AddOptions<ProtocolServerOptions>()
             .BindConfiguration("ProtocolServer")
-            .Configure(opt =>
-            {
-                opt.PropertyConverters.Add("zdvStudentID", nameof(StringConverter));
-
-                opt.ClaimSources.Add(new("matriculation_number", "zdvStudentID"));
-                opt.ClaimSources.Add(new("role", "msds-tokenGroupNamesGlobalAndUniversal")
-                {
-                    ClaimValueDenyList = new List<string> { "^aobj_.+$", "^www-.+-m$" }
-                });
-            })
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
         services.AddOptions<ActiveDirectoryOptions>()
             .BindConfiguration("ActiveDirectory")
-            .PostConfigure<ProtocolServerOptions>((opt, pso) =>
+            .PostConfigure<IOptions<ProtocolServerOptions>>((adOptions, serverOptions) =>
             {
-                opt.UserClaimType = pso.UserClaimType;
+                adOptions.UserClaimType = serverOptions.Value.UserClaimType;
 
-                foreach (var conv in pso.PropertyConverters)
-                    opt.PropertyConverters[conv.Key] = conv.Value;
+                foreach (var conv in serverOptions.Value.PropertyConverters)
+                    adOptions.PropertyConverters[conv.Key] = conv.Value;
 
-                foreach (var src in pso.ClaimSources)
+                foreach (var src in serverOptions.Value.ClaimSources)
                 {
-                    opt.ClaimSources.RemoveAll(c => c.ClaimType.Equals(src.ClaimType, StringComparison.OrdinalIgnoreCase));
-                    opt.ClaimSources.Add(src);
+                    adOptions.ClaimSources.RemoveAll(c => c.ClaimType.Equals(src.ClaimType, StringComparison.OrdinalIgnoreCase));
+                    adOptions.ClaimSources.Add(src);
                 }
             })
             .ValidateDataAnnotations()
@@ -210,7 +202,8 @@ internal static class Startup
                 Permissions.GrantTypes.AuthorizationCode,
                 Permissions.ResponseTypes.Code,
             },
-            ConsentType = ConsentTypes.Implicit
+            ConsentType = ConsentTypes.Implicit,
+            
         });
 
         var sampleScope = await scopeManager.FindByNameAsync("sample");
@@ -221,7 +214,11 @@ internal static class Startup
 
         await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
         {
-            Name = "sample"
+            Name = "sample",
+            Properties =
+            {
+                { "requiredClaims", JsonDocument.Parse("[\"hey\"]").RootElement }
+            }
         });
     }
 #endif

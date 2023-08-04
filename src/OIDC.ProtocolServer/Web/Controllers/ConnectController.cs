@@ -1,4 +1,5 @@
-﻿using System.Net.Mime;
+﻿using System.Linq;
+using System.Net.Mime;
 using System.Security.Claims;
 
 using Azure.Core;
@@ -120,6 +121,11 @@ public class ConnectController : Controller
                 requestedClaims.AddRange(claims);
         }
 
+        requestedClaims = requestedClaims
+            .Concat(ActiveDirectory.ClaimProvider.Configuration.Defaults.KnownConverters.Keys)
+            .Distinct()
+            .ToList();
+
         var userClaims = new List<(string Type, string Value)>();
         foreach (var cp in claimProviders)
         {
@@ -129,9 +135,9 @@ public class ConnectController : Controller
         
 
         var identity = new ClaimsIdentity(
-                authenticationType: TokenValidationParameters.DefaultAuthenticationType,
-                nameType: Claims.Name,
-                roleType: Claims.Role);
+            authenticationType: TokenValidationParameters.DefaultAuthenticationType,
+            nameType: Claims.Name,
+            roleType: Claims.Role);
 
         foreach(var c in userClaims)
         {
@@ -154,8 +160,15 @@ public class ConnectController : Controller
             type: AuthorizationTypes.Permanent,
             scopes: identity.GetScopes());
 
+        var idTokenClaims = oidcRequest.GetScopes()
+            .Intersect(_options.Value.IdTokenScopes)
+            .Select(_options.Value.ScopeClaims.GetValueOrDefault)
+            .Where(x => x != null)
+            .SelectMany(x => x!)
+            .ToHashSet();
+
         identity.SetAuthorizationId(await _authorizationManager.GetIdAsync(authorization));
-        identity.SetDestinations(GetDestinations);
+        identity.SetDestinations(c => GetDestinations(c, idTokenClaims));
 
         return identity;
     }
@@ -400,49 +413,10 @@ public class ConnectController : Controller
     private static readonly IEnumerable<string> BothTokens = new[] { Destinations.IdentityToken, Destinations.AccessToken };
     private static readonly IEnumerable<string> AccessToken = new[] { Destinations.AccessToken };
 
-    private IEnumerable<string> GetDestinations(Claim claim)
+    private IEnumerable<string> GetDestinations(Claim claim, HashSet<string> idTokenClaims)
     {
-        // Note: by default, claims are NOT automatically included in the access and identity tokens.
-        // To allow OpenIddict to serialize them, you must attach them a destination, that specifies
-        // whether they should be included in access tokens, in identity tokens or in both.
-
-        // TODO: Scope mit einbeziehen!
-        return _options.Value.IdTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase) 
+        return idTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase) 
             ? BothTokens 
             : AccessToken;
-
-        //switch (claim.Type)
-        //{
-        //    case Claims.Name:
-        //        yield return Destinations.AccessToken;
-
-        //        if (claim.Subject.HasScope(Scopes.Profile))
-        //            yield return Destinations.IdentityToken;
-
-        //        yield break;
-
-        //    case Claims.Email:
-        //        yield return Destinations.AccessToken;
-
-        //        if (claim.Subject.HasScope(Scopes.Email))
-        //            yield return Destinations.IdentityToken;
-
-        //        yield break;
-
-        //    case Claims.Role:
-        //        yield return Destinations.AccessToken;
-
-        //        if (claim.Subject.HasScope(Scopes.Roles))
-        //            yield return Destinations.IdentityToken;
-
-        //        yield break;
-
-        //    // Never include the security stamp in the access and identity tokens, as it's a secret value.
-        //    case "AspNet.Identity.SecurityStamp": yield break;
-
-        //    default:
-        //        yield return Destinations.AccessToken;
-        //        yield break;
-        //}
     }
 }
