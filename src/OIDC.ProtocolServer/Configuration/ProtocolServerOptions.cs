@@ -16,7 +16,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Configuration
         public Dictionary<string, List<string>> ScopeClaims { get; set; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         public List<string> IdTokenScopes { get; set; } = new();
 
-        public Dictionary<string, string> PropertyConverters { get; set; } = new();
+        public Dictionary<string, string> Properties { get; set; } = new();
         public List<ClaimSource> ClaimSources { get; set; } = new();
 
 

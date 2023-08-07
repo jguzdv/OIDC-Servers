@@ -135,8 +135,15 @@ internal static class Startup
             {
                 adOptions.UserClaimType = serverOptions.Value.UserClaimType;
 
-                foreach (var conv in serverOptions.Value.PropertyConverters)
-                    adOptions.PropertyConverters[conv.Key] = conv.Value;
+                foreach (var conv in serverOptions.Value.Properties)
+                    adOptions.Properties.Add(new ADPropertyInfo(conv.Key, conv.Value switch
+                    {
+                        "int" => typeof(int),
+                        "long" => typeof(long),
+                        "DateTime" => typeof(DateTime),
+                        "byte[]" => typeof(byte[]),
+                        _ => typeof(string)
+                    }));
 
                 foreach (var src in serverOptions.Value.ClaimSources)
                 {

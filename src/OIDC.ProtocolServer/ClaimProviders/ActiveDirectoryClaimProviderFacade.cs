@@ -22,5 +22,5 @@ public class ActiveDirectoryClaimProviderFacade : IClaimProvider
             .Any();
 
     public Task<List<(string Type, string Value)>> GetClaimsAsync(ClaimsPrincipal currentUser, IEnumerable<string> claimTypes, CancellationToken ct)
-        =>Task.FromResult(_provider.GetClaims(currentUser, claimTypes));
+        =>Task.FromResult(_provider.GetClaims(currentUser, claimTypes.ToArray()));
 }
