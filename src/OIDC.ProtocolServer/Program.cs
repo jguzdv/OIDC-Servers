@@ -3,9 +3,9 @@ using System.Text.Json;
 
 using JGUZDV.ActiveDirectory.ClaimProvider.Configuration;
 using JGUZDV.ActiveDirectory.ClaimProvider.PropertyConverters;
-using JGUZDV.OIDC.ProtocolServer;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
+using JGUZDV.OIDC.ProtocolServer.Data;
 
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 using OpenIddict.Abstractions;
+
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -209,8 +210,7 @@ internal static class Startup
                 Permissions.GrantTypes.AuthorizationCode,
                 Permissions.ResponseTypes.Code,
             },
-            ConsentType = ConsentTypes.Implicit,
-            
+            ConsentType = ConsentTypes.Implicit
         });
 
         var sampleScope = await scopeManager.FindByNameAsync("sample");
@@ -224,7 +224,7 @@ internal static class Startup
             Name = "sample",
             Properties =
             {
-                { "requiredClaims", JsonDocument.Parse("[\"hey\"]").RootElement }
+                { "claimTypes", JsonSerializer.SerializeToElement(new[] { "some_claim" }) }
             }
         });
     }

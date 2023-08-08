@@ -20,10 +20,7 @@ namespace JGUZDV.OIDC.ProtocolServer
         public DateTimeOffset? LastPasswordChange(ClaimsPrincipal claimsPrincipal)
         {
             var lastChange = _adClaimProvider.GetClaims(claimsPrincipal, new[] { "pwdLastChanged" });
-            if(!lastChange.Any())
-                return null;
-
-            return DateTimeOffset.TryParse(lastChange.First().Value, out var lastChangeDatetime)
+            return DateTimeOffset.TryParse(lastChange.FirstOrDefault().Value, out var lastChangeDatetime)
                 ? lastChangeDatetime
                 : null;
         }

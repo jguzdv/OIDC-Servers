@@ -1,8 +1,4 @@
-﻿using System.Linq;
-using System.Net.Mime;
-using System.Security.Claims;
-
-using Azure.Core;
+﻿using System.Security.Claims;
 
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
@@ -10,7 +6,6 @@ using JGUZDV.OIDC.ProtocolServer.Extensions;
 
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
