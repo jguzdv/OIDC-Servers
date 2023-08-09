@@ -1,7 +1,9 @@
-﻿using System.Security.Claims;
+﻿using System.Collections.Immutable;
+using System.Security.Claims;
 
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
+using JGUZDV.OIDC.ProtocolServer.Data;
 using JGUZDV.OIDC.ProtocolServer.Extensions;
 
 using Microsoft.AspNetCore;
@@ -100,36 +102,34 @@ public class ConnectController : Controller
 
 
         // Create the claims-based identity that will be used by OpenIddict to generate tokens.
-        var identity = await CreateIdentityAsync(oidcRequest, userId, clientUuid!, authorizations, claimProviders, ct);
+        var identity = await CreateIdentityAsync(
+            oidcRequest, userId, clientUuid!, 
+            application, authorizations, claimProviders, ct);
         return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }
 
-    private async Task<ClaimsIdentity> CreateIdentityAsync(OpenIddictRequest oidcRequest, string userId, string clientUuid,
-        List<object> authorizations, IEnumerable<IClaimProvider> claimProviders, CancellationToken ct)
+    private async Task<ClaimsIdentity> CreateIdentityAsync(
+        OpenIddictRequest oidcRequest, string userId, string clientUuid,
+        object application, List<object> authorizations, IEnumerable<IClaimProvider> claimProviders, 
+        CancellationToken ct)
     {
         var requestedScopes = oidcRequest.GetScopes();
-        var requestedClaims = new List<string>();
-
-        foreach(var s in requestedScopes)
-        {
-            if (_options.Value.ScopeClaims.TryGetValue(s, out var claims))
-                requestedClaims.AddRange(claims);
-        }
+        var (requestedClaims, scopeClaims) = await CollectRequestedClaimTypes(application, requestedScopes, ct);
 
         var userClaims = new List<(string Type, string Value)>();
         foreach (var cp in claimProviders)
         {
-            var claims = await cp.GetClaimsAsync(User, requestedClaims, ct);
+            var claims = await cp.GetClaimsAsync(User, requestedClaims.Distinct(), ct);
             userClaims.AddRange(claims);
         }
-        
+
 
         var identity = new ClaimsIdentity(
             authenticationType: TokenValidationParameters.DefaultAuthenticationType,
             nameType: Claims.Name,
             roleType: Claims.Role);
 
-        foreach(var c in userClaims)
+        foreach (var c in userClaims)
         {
             identity.SetClaim(c.Type, c.Value);
         }
@@ -148,19 +148,45 @@ public class ConnectController : Controller
             subject: userId,
             client: clientUuid,
             type: AuthorizationTypes.Permanent,
-            scopes: identity.GetScopes());
+            scopes: oidcRequest.GetScopes());
 
-        var idTokenClaims = oidcRequest.GetScopes()
+        var idTokenClaims = requestedScopes
             .Intersect(_options.Value.IdTokenScopes)
-            .Select(_options.Value.ScopeClaims.GetValueOrDefault)
+            .Select(scopeClaims.GetValueOrDefault)
             .Where(x => x != null)
-            .SelectMany(x => x!)
+            .SelectMany(x => x!.ClaimTypes)
             .ToHashSet();
 
         identity.SetAuthorizationId(await _authorizationManager.GetIdAsync(authorization));
         identity.SetDestinations(c => GetDestinations(c, idTokenClaims));
 
         return identity;
+    }
+
+    private async Task<(HashSet<string>, Dictionary<string, ScopeProperties>)> CollectRequestedClaimTypes(object application, ImmutableArray<string> requestedScopes, CancellationToken ct)
+    {
+        var requestedClaims = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var (appProps, scopeProps) = await GetPropertiesAsync(application, requestedScopes, ct);
+        foreach (var claimType in appProps.ClaimTypes.Concat(scopeProps.Values.SelectMany(x => x.ClaimTypes)))
+            requestedClaims.Add(claimType);
+
+        return (requestedClaims, scopeProps);
+    }
+
+    private async Task<(ApplicationProperties appProperties, Dictionary<string, ScopeProperties> scopeProperties)> GetPropertiesAsync(object application, ImmutableArray<string> scopes, CancellationToken ct)
+    {
+        var appProperties = new ApplicationProperties(await _applicationManager.GetPropertiesAsync(application, ct));
+        
+        var scopesProperties = new Dictionary<string, ScopeProperties>();
+        await foreach (var scope in _scopeManager.FindByNamesAsync(scopes, ct)) {
+            var scopeName = await _scopeManager.GetNameAsync(scope);
+            var scopeProperties = new ScopeProperties(await _scopeManager.GetPropertiesAsync(scope, ct));
+
+            scopesProperties.Add(scopeName!, scopeProperties);
+        }
+
+        return (appProperties, scopesProperties);
     }
 
     private (bool needsConsent, string? consentError) CheckConsent(OpenIddictRequest oidcRequest, List<object> authorizations, string consentType)
@@ -343,62 +369,62 @@ public class ConnectController : Controller
     //            });
     //    }
 
-    //    [HttpPost("~/connect/token"), IgnoreAntiforgeryToken, Produces("application/json")]
-    //    public async Task<IActionResult> Exchange()
-    //    {
-    //        var request = HttpContext.GetOpenIddictServerRequest() ??
-    //            throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
+    [HttpPost("~/connect/token"), IgnoreAntiforgeryToken, Produces("application/json")]
+    public async Task<IActionResult> Exchange([FromServices] UserValidationProvider userValidation, CancellationToken ct)
+    {
+        var request = HttpContext.GetOpenIddictServerRequest() ??
+            throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
-    //        if (request.IsAuthorizationCodeGrantType() || request.IsRefreshTokenGrantType())
-    //        {
-    //            // Retrieve the claims principal stored in the authorization code/refresh token.
-    //            var result = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        if (request.IsAuthorizationCodeGrantType() || request.IsRefreshTokenGrantType())
+        {
+            // Retrieve the claims principal stored in the authorization code/refresh token.
+            var result = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
 
-    //            // Retrieve the user profile corresponding to the authorization code/refresh token.
-    //            var user = await _userManager.FindByIdAsync(result.Principal.GetClaim(Claims.Subject));
-    //            if (user is null)
-    //            {
-    //                return Forbid(
-    //                    authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-    //                    properties: new AuthenticationProperties(new Dictionary<string, string?>
-    //                    {
-    //                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
-    //                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The token is no longer valid."
-    //                    }));
-    //            }
+            if (!userValidation.IsUserActive(User))
+            {
+                return Forbid(
+                    authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+                    properties: new AuthenticationProperties(new Dictionary<string, string?>
+                    {
+                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
+                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The user is no longer active."
+                    }));
+            }
 
-    //            // Ensure the user is still allowed to sign in.
-    //            if (!await _signInManager.CanSignInAsync(user))
-    //            {
-    //                return Forbid(
-    //                    authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-    //                    properties: new AuthenticationProperties(new Dictionary<string, string?>
-    //                    {
-    //                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
-    //                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The user is no longer allowed to sign in."
-    //                    }));
-    //            }
 
-    //            var identity = new ClaimsIdentity(result.Principal.Claims,
-    //                authenticationType: TokenValidationParameters.DefaultAuthenticationType,
-    //                nameType: Claims.Name,
-    //                roleType: Claims.Role);
+            // TODO: check if the password has changed _after_ refresh_token issuance
+            // Ensure the user is still allowed to sign in.
+            //if (!await _signInManager.CanSignInAsync(user))
+            //{
+            //    return Forbid(
+            //        authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+            //        properties: new AuthenticationProperties(new Dictionary<string, string?>
+            //        {
+            //            [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
+            //            [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The refresh token expired through password reset."
+            //        }));
+            //}
 
-    //            // Override the user claims present in the principal in case they
-    //            // changed since the authorization code/refresh token was issued.
-    //            identity.SetClaim(Claims.Subject, await _userManager.GetUserIdAsync(user))
-    //                    .SetClaim(Claims.Email, await _userManager.GetEmailAsync(user))
-    //                    .SetClaim(Claims.Name, await _userManager.GetUserNameAsync(user))
-    //                    .SetClaims(Claims.Role, (await _userManager.GetRolesAsync(user)).ToImmutableArray());
+            var identity = new ClaimsIdentity(result.Principal.Claims,
+                authenticationType: TokenValidationParameters.DefaultAuthenticationType,
+                nameType: Claims.Name,
+                roleType: Claims.Role);
 
-    //            identity.SetDestinations(GetDestinations);
+            //// Override the user claims present in the principal in case they
+            //// changed since the authorization code/refresh token was issued.
+            //identity.SetClaim(Claims.Subject, await _userManager.GetUserIdAsync(user))
+            //        .SetClaim(Claims.Email, await _userManager.GetEmailAsync(user))
+            //        .SetClaim(Claims.Name, await _userManager.GetUserNameAsync(user))
+            //        .SetClaims(Claims.Role, (await _userManager.GetRolesAsync(user)).ToImmutableArray());
 
-    //            // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
-    //            return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
-    //        }
+            //identity.SetDestinations(GetDestinations);
 
-    //        throw new InvalidOperationException("The specified grant type is not supported.");
-    //    }
+            // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
+            return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        }
+
+        throw new InvalidOperationException("The specified grant type is not supported.");
+    }
 
     private static readonly IEnumerable<string> BothTokens = new[] { Destinations.IdentityToken, Destinations.AccessToken };
     private static readonly IEnumerable<string> AccessToken = new[] { Destinations.AccessToken };

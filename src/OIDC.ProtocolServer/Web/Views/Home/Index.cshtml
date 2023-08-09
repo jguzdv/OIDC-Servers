@@ -1,6 +1,4 @@
-﻿@page
-
-@{
+﻿@{
     var version = System.Diagnostics.FileVersionInfo.GetVersionInfo(typeof(OpenIddictBuilder).Assembly.Location).ProductVersion
         ?.Split("+", 2).FirstOrDefault();
 }
