@@ -22,4 +22,8 @@
 	<ItemGroup>
 		<ProjectReference Include="C:\Dev\GitHub\NuGet-Packages\libraries\JGUZDV.ActiveDirectory.ClaimProvider\src\JGUZDV.ActiveDirectory.ClaimProvider.csproj" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Web\Pages\" />
+	</ItemGroup>
 </Project>
