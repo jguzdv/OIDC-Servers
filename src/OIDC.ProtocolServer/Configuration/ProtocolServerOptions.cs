@@ -13,7 +13,6 @@ namespace JGUZDV.OIDC.ProtocolServer.Configuration
         public string? UserClaimType { get; set; }
         public string DefaultConsentType { get; set; } = ConsentTypes.Implicit;
 
-        public Dictionary<string, List<string>> ScopeClaims { get; set; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         public List<string> IdTokenScopes { get; set; } = new();
 
         public Dictionary<string, string> Properties { get; set; } = new();
