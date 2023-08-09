@@ -210,7 +210,12 @@ internal static class Startup
                 Permissions.GrantTypes.AuthorizationCode,
                 Permissions.ResponseTypes.Code,
             },
-            ConsentType = ConsentTypes.Implicit
+            ConsentType = ConsentTypes.Implicit,
+            Properties=
+            {
+                { "claimTypes", JsonSerializer.SerializeToElement(new[] { "some_claim" }) },
+                { "staticClaims", JsonSerializer.SerializeToElement(new[] { new { Type="claimType", Value="claimValue" } }) }
+            }
         });
 
         var sampleScope = await scopeManager.FindByNameAsync("sample");
