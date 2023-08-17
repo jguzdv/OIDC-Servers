@@ -17,13 +17,8 @@
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.9" />
 		<PackageReference Include="OpenIddict.AspNetCore" Version="4.6.0" />
 		<PackageReference Include="OpenIdDict.EntityFrameworkCore" Version="4.6.0" />
-	</ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="C:\Dev\GitHub\NuGet-Packages\libraries\JGUZDV.ActiveDirectory.ClaimProvider\src\JGUZDV.ActiveDirectory.ClaimProvider.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Web\Pages\" />
+        <PackageReference Include="JGUZDV.ActiveDirectory.ClaimProvider" Version="1.0.0-beta" />
+        <PackageReference Include="JGUZDV.AspNetCore.Authentication.Cookies" Version="1.0.0" />
 	</ItemGroup>
 </Project>

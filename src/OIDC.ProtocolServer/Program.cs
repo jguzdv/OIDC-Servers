@@ -2,7 +2,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json;
 
 using JGUZDV.ActiveDirectory.ClaimProvider.Configuration;
-using JGUZDV.ActiveDirectory.ClaimProvider.PropertyConverters;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
 using JGUZDV.OIDC.ProtocolServer.Data;
@@ -13,7 +12,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 using OpenIddict.Abstractions;
-using OpenIddict.Server;
 
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -56,6 +54,16 @@ internal static class Startup
             options.UseOpenIddict();
         });
 
+        if (builder.Environment.IsDevelopment())
+        {
+            services.AddDistributedMemoryCache();
+        }
+        else
+        {
+            // TODO: Add DistributedCache here.
+            throw new NotImplementedException();
+        }
+
         services.AddAuthentication(options =>
         {
             options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -71,7 +79,8 @@ internal static class Startup
                 options.LogoutPath = "/authn/logout";
                 options.ExpireTimeSpan = TimeSpan.FromMinutes(5);
                 options.SlidingExpiration = false;
-            });
+            })
+            .AddCookieDistributedTicketStore();
 
         services.AddOpenIddict()
             .AddCore(options =>
