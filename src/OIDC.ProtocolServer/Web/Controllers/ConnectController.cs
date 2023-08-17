@@ -56,10 +56,9 @@ public class ConnectController : Controller
         if (challengeResult != null)
             return challengeResult;
 
+        var application = ApplicationModel.FromClientId(_applicationManager, oidcRequest.ClientId!, ct);
+        
 
-        // Retrieve the application details from the database.
-        var application = await _applicationManager.FindByClientIdAsync(oidcRequest.ClientId!, ct) ??
-            throw new InvalidOperationException("Details concerning the calling client application cannot be found.");
         var clientUuid = await _applicationManager.GetIdAsync(application, ct);
 
         var userId = User.GetClaim(_options.Value.UserClaimType) ??
@@ -109,8 +108,8 @@ public class ConnectController : Controller
     }
 
     private async Task<ClaimsIdentity> CreateIdentityAsync(
-        OpenIddictRequest oidcRequest, string userId, string clientUuid,
-        object application, List<object> authorizations, IEnumerable<IClaimProvider> claimProviders, 
+        OpenIddictRequest oidcRequest, string userId,
+        ApplicationModel application, List<object> authorizations, IEnumerable<IClaimProvider> claimProviders, 
         CancellationToken ct)
     {
         var requestedScopes = oidcRequest.GetScopes();
@@ -163,30 +162,12 @@ public class ConnectController : Controller
         return identity;
     }
 
-    private async Task<(HashSet<string>, Dictionary<string, ScopeProperties>)> CollectRequestedClaimTypes(object application, ImmutableArray<string> requestedScopes, CancellationToken ct)
+    private async Task<HashSet<string>> CollectRequestedClaimTypes(ApplicationModel application, IEnumerable<ScopeModel> requestedScopes, CancellationToken ct)
     {
-        var requestedClaims = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        var (appProps, scopeProps) = await GetPropertiesAsync(application, requestedScopes, ct);
-        foreach (var claimType in appProps.ClaimTypes.Concat(scopeProps.Values.SelectMany(x => x.ClaimTypes)))
-            requestedClaims.Add(claimType);
-
-        return (requestedClaims, scopeProps);
-    }
-
-    private async Task<(ApplicationProperties appProperties, Dictionary<string, ScopeProperties> scopeProperties)> GetPropertiesAsync(object application, ImmutableArray<string> scopes, CancellationToken ct)
-    {
-        var appProperties = new ApplicationProperties(await _applicationManager.GetPropertiesAsync(application, ct));
-        
-        var scopesProperties = new Dictionary<string, ScopeProperties>();
-        await foreach (var scope in _scopeManager.FindByNamesAsync(scopes, ct)) {
-            var scopeName = await _scopeManager.GetNameAsync(scope);
-            var scopeProperties = new ScopeProperties(await _scopeManager.GetPropertiesAsync(scope, ct));
-
-            scopesProperties.Add(scopeName!, scopeProperties);
-        }
-
-        return (appProperties, scopesProperties);
+        return requestedScopes
+            .SelectMany(x => x.RequestedClaimTypes)
+            .Concat(application.RequestedClaimTypes)
+            .ToHashSet();
     }
 
     private (bool needsConsent, string? consentError) CheckConsent(OpenIddictRequest oidcRequest, List<object> authorizations, string consentType)
@@ -390,6 +371,8 @@ public class ConnectController : Controller
                         [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The user is no longer active."
                     }));
             }
+
+            if()
 
 
             // TODO: check if the password has changed _after_ refresh_token issuance
