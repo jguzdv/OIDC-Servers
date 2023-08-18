@@ -12,17 +12,27 @@ namespace JGUZDV.OIDC.ProtocolServer.Data
         ImmutableArray<string> RequestedClaimTypes
         )
     {
-        public static async Task<ScopeModel?> From(
+        public static async Task<ScopeModel?> FromScopeNameAsync(
             IOpenIddictScopeManager scopeManager,
             string scopeName, CancellationToken ct)
         {
             var scope = await scopeManager.FindByNameAsync(scopeName, ct);
             if (scope == null) return null;
 
-            return await From(scopeManager, scope, ct);
+            return await FromScopeObject(scopeManager, scope, ct);
         }
 
-        private static async Task<ScopeModel?> From(IOpenIddictScopeManager scopeManager, object scope, CancellationToken ct)
+        internal static async Task<ImmutableArray<ScopeModel>> FromScopeNamesAsync(IOpenIddictScopeManager scopeManager, ImmutableArray<string> scopeNames, CancellationToken ct)
+        {
+            var tasks = new List<Task<ScopeModel>>();
+            await foreach (var scope in scopeManager.FindByNamesAsync(scopeNames, ct))
+                tasks.Add(FromScopeObject(scopeManager, scope, ct));
+
+            return (await Task.WhenAll(tasks))
+                .ToImmutableArray();
+        }
+
+        private static async Task<ScopeModel> FromScopeObject(IOpenIddictScopeManager scopeManager, object scope, CancellationToken ct)
         {
             var props = await scopeManager.GetPropertiesAsync(scope, ct);
             var scopeProps = new ScopeProperties(props);

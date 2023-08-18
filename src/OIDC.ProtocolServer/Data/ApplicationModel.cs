@@ -14,16 +14,12 @@ namespace JGUZDV.OIDC.ProtocolServer.Data
         ImmutableArray<string> RequestedClaimTypes
         )
     {
-        public static async Task<ApplicationModel?> FromClientId(
+        public static async Task<ApplicationModel> FromClientIdAsync(
             IOpenIddictApplicationManager appManager,
             string clientId, CancellationToken ct)
         {
             var application = await appManager.FindByClientIdAsync(clientId!, ct) ??
-            throw new InvalidOperationException("Details concerning the calling client application cannot be found.");
-
-            if (application == null)
-                return null;
-
+                throw new InvalidOperationException("Details concerning the calling client application cannot be found.");
 
             var props = await appManager.GetPropertiesAsync(application, ct);
             var appProps = new ApplicationProperties(props);
@@ -32,7 +28,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Data
                 await appManager.GetIdAsync(application, ct),
                 await appManager.GetClientIdAsync(application, ct),
                 await appManager.GetConsentTypeAsync(application, ct),
-                await appManager.GetDisplayNameAsync(application, ct),
+                await appManager.GetLocalizedDisplayNameAsync(application, ct),
                 await appManager.GetPermissionsAsync(application, ct),
                 appProps.StaticClaims.ToImmutableArray(),
                 appProps.ClaimTypes.ToImmutableArray()
