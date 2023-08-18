@@ -5,6 +5,7 @@
         {
             public const string ClaimTypes = "claimTypes";
             public const string StaticClaims = "staticClaims";
+            public const string IsIdTokenScope = "isIdTokenScope";
         }
     }
 }
