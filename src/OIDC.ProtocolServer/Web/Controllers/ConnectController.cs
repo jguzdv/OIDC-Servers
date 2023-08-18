@@ -353,10 +353,8 @@ public class ConnectController : Controller
             scopes: oidcRequest.GetScopes());
 
         var idTokenClaims = requestedScopes
-            .Intersect(_options.Value.IdTokenScopes)
-            .Select(scopeClaims.GetValueOrDefault)
-            .Where(x => x != null)
-            .SelectMany(x => x!.ClaimTypes)
+            .Where(x => x.IsIdTokenScope)
+            .SelectMany(x => x.RequestedClaimTypes)
             .ToHashSet();
 
         identity.SetAuthorizationId(await _authorizationManager.GetIdAsync(authorization));

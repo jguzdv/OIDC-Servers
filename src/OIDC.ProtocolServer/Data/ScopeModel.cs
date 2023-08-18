@@ -9,8 +9,8 @@ namespace JGUZDV.OIDC.ProtocolServer.Data
         string DisplayName,
         ImmutableArray<string> Resources,
         ImmutableArray<(string Type, string Value)> StaticClaims,
-        ImmutableArray<string> RequestedClaimTypes
-        )
+        ImmutableArray<string> RequestedClaimTypes,
+        bool IsIdTokenScope)
     {
         public static async Task<ScopeModel?> FromScopeNameAsync(
             IOpenIddictScopeManager scopeManager,
@@ -42,7 +42,8 @@ namespace JGUZDV.OIDC.ProtocolServer.Data
                 await scopeManager.GetDisplayNameAsync(scope, ct),
                 await scopeManager.GetResourcesAsync(scope, ct),
                 scopeProps.StaticClaims.ToImmutableArray(),
-                scopeProps.ClaimTypes.ToImmutableArray()
+                scopeProps.ClaimTypes.ToImmutableArray(),
+                scopeProps.IsIdTokenScope
                 );
         }
     }
