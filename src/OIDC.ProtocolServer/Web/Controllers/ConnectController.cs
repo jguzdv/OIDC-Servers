@@ -91,78 +91,77 @@ public class ConnectController : Controller
         var request = HttpContext.GetOpenIddictServerRequest() ??
             throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
-        if (request.IsAuthorizationCodeGrantType() || request.IsRefreshTokenGrantType())
+        if (!request.IsAuthorizationCodeGrantType() && !request.IsRefreshTokenGrantType())
+            throw new InvalidOperationException("The specified grant type is not supported.");
+
+
+        // Retrieve the claims principal stored in the authorization code/refresh token.
+        var authResult = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        if (!authResult.Succeeded)
         {
-            // Retrieve the claims principal stored in the authorization code/refresh token.
-            var result = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
-            if(!result.Succeeded)
-            {
-                return Forbid(
-                    authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-                    properties: new AuthenticationProperties(new Dictionary<string, string?>
-                    {
-                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
-                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The refresh token was invalid or already expired."
-                    }));
-            }
-
-
-            if (!userValidation.IsUserActive(User))
-            {
-                return Forbid(
-                    authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-                    properties: new AuthenticationProperties(new Dictionary<string, string?>
-                    {
-                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
-                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The user is no longer active."
-                    }));
-            }
-
-            // check if the password has changed _after_ refresh_token issuance
-            if (userValidation.LastPasswordChange(User) > User.GetCreationDate())
-            {
-                return Forbid(
-                    authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-                    properties: new AuthenticationProperties(new Dictionary<string, string?>
-                    {
-                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
-                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The refresh token expired through password reset."
-                    }));
-            }
-
-            var identity = new ClaimsIdentity(result.Principal.Claims,
-                    authenticationType: TokenValidationParameters.DefaultAuthenticationType,
-                    nameType: Claims.Name,
-                    roleType: Claims.Role);
-
-            var scopes = await ScopeModel.FromScopeNamesAsync(_scopeManager, identity.GetScopes(), ct);
-            var idClaims = scopes.Where(x => x.IsIdTokenScope)
-                .SelectMany(x => x.RequestedClaimTypes)
-                .Distinct()
-                .ToHashSet();
-
-            var userClaims = new List<(string Type, string Value)>();
-            foreach (var cp in claimProviders)
-            {
-                var claims = await cp.GetClaimsAsync(User, idClaims.Distinct(), ct);
-                userClaims.AddRange(claims);
-            }
-
-            foreach(var claimType in userClaims.GroupBy(x => x.Type))
-            {
-                if (claimType.Count() > 1)
-                    identity.SetClaim(claimType.Key, claimType.First().Value);
-                else
-                    identity.SetClaims(claimType.Key, claimType.Select(x => x.Value).ToImmutableArray());
-            }
-
-            identity.SetDestinations(x => GetDestinations(x, idClaims));
-
-            // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
-            return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            return Forbid(
+                authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+                properties: new AuthenticationProperties(new Dictionary<string, string?>
+                {
+                    [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
+                    [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The refresh token was invalid or already expired."
+                }));
         }
 
-        throw new InvalidOperationException("The specified grant type is not supported.");
+        var user = authResult.Principal;
+        if (!userValidation.IsUserActive(user))
+        {
+            return Forbid(
+                authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+                properties: new AuthenticationProperties(new Dictionary<string, string?>
+                {
+                    [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
+                    [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The user is no longer active."
+                }));
+        }
+
+        // check if the password has changed _after_ refresh_token issuance
+        if (userValidation.LastPasswordChange(user) > User.GetCreationDate())
+        {
+            return Forbid(
+                authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+                properties: new AuthenticationProperties(new Dictionary<string, string?>
+                {
+                    [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
+                    [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The refresh token expired through password reset."
+                }));
+        }
+
+        var identity = new ClaimsIdentity(user.Claims,
+                authenticationType: TokenValidationParameters.DefaultAuthenticationType,
+                nameType: Claims.Name,
+                roleType: Claims.Role);
+
+        var scopes = await ScopeModel.FromScopeNamesAsync(_scopeManager, identity.GetScopes(), ct);
+        var idClaims = scopes.Where(x => x.IsIdTokenScope)
+            .SelectMany(x => x.RequestedClaimTypes)
+            .Distinct()
+            .ToHashSet();
+
+        var userClaims = new List<(string Type, string Value)>();
+        foreach (var cp in claimProviders)
+        {
+            var claims = await cp.GetClaimsAsync(user, idClaims.Distinct(), ct);
+            userClaims.AddRange(claims);
+        }
+
+        foreach (var claimType in userClaims.GroupBy(x => x.Type))
+        {
+            if (claimType.Count() > 1)
+                identity.SetClaim(claimType.Key, claimType.First().Value);
+            else
+                identity.SetClaims(claimType.Key, claimType.Select(x => x.Value).ToImmutableArray());
+        }
+
+        identity.SetDestinations(x => GetDestinations(x, idClaims));
+
+        // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
+        return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }
 
 

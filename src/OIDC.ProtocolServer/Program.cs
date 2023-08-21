@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json;
 
 using JGUZDV.ActiveDirectory.ClaimProvider.Configuration;
+using JGUZDV.OIDC.ProtocolServer;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
 using JGUZDV.OIDC.ProtocolServer.Data;
@@ -92,24 +93,29 @@ internal static class Startup
             {
                 // Enable the authorization, device, introspection,
                 // logout, token, userinfo and verification endpoints.
-                options.SetAuthorizationEndpointUris("connect/authorize")
-                       .SetDeviceEndpointUris("connect/device")
-                       .SetIntrospectionEndpointUris("connect/introspect")
-                       .SetTokenEndpointUris("connect/token")
-                       .SetUserinfoEndpointUris("connect/userinfo")
-                       .SetVerificationEndpointUris("connect/verify")
-                       .SetLogoutEndpointUris("connect/logout");
+                options
+                    .SetAuthorizationEndpointUris("connect/authorize")
+                    .SetDeviceEndpointUris("connect/device")
+                    .SetIntrospectionEndpointUris("connect/introspect")
+                    .SetTokenEndpointUris("connect/token")
+                    .SetUserinfoEndpointUris("connect/userinfo")
+                    .SetVerificationEndpointUris("connect/verify")
+                    .SetLogoutEndpointUris("connect/logout");
 
 
-                options.AllowAuthorizationCodeFlow()
-                       .AllowDeviceCodeFlow()
-                       .AllowRefreshTokenFlow();
+                options
+                    .AllowAuthorizationCodeFlow()
+                    
+                    .AllowDeviceCodeFlow()
+                    .AllowRefreshTokenFlow();
 
 
                 if (builder.Environment.IsDevelopment())
                 {
-                    options.AddDevelopmentEncryptionCertificate()
-                           .AddDevelopmentSigningCertificate();
+                    options
+                        .DisableAccessTokenEncryption()
+                        .AddDevelopmentEncryptionCertificate()
+                        .AddDevelopmentSigningCertificate();
                 }
                 else
                 {
@@ -121,12 +127,12 @@ internal static class Startup
 
                 // Register the ASP.NET Core host and configure the ASP.NET Core-specific options.
                 options.UseAspNetCore()
-                       .EnableStatusCodePagesIntegration()
-                       .EnableAuthorizationEndpointPassthrough()
-                       .EnableLogoutEndpointPassthrough()
-                       .EnableTokenEndpointPassthrough()
-                       .EnableUserinfoEndpointPassthrough()
-                       .EnableVerificationEndpointPassthrough();
+                    .EnableStatusCodePagesIntegration()
+                    .EnableAuthorizationEndpointPassthrough()
+                    .EnableLogoutEndpointPassthrough()
+                    .EnableTokenEndpointPassthrough()
+                    .EnableUserinfoEndpointPassthrough()
+                    .EnableVerificationEndpointPassthrough();
 
             })
 
@@ -171,7 +177,8 @@ internal static class Startup
 
         services
             .AddActiveDirectoryClaimProvider()
-            .AddClaimProvider<ActiveDirectoryClaimProviderFacade>();
+            .AddClaimProvider<ActiveDirectoryClaimProviderFacade>()
+            .AddScoped<UserValidationProvider>();
     }
 
     public static void Configure(this WebApplication app)
@@ -215,19 +222,22 @@ internal static class Startup
         await applicationManager.CreateAsync(new OpenIddictApplicationDescriptor
         {
             ClientId = "sample",
-            RedirectUris = { new Uri("https://localhost:5001") },
+            ClientSecret = "P@ssword!1",
+            RedirectUris = { new Uri("https://localhost:5001/signin-oidc") },
             Permissions =
             {
+                Permissions.Scopes.Profile,
                 Permissions.Prefixes.Scope + "sample",
                 Permissions.Endpoints.Authorization,
+                Permissions.Endpoints.Token,
                 Permissions.GrantTypes.AuthorizationCode,
                 Permissions.ResponseTypes.Code,
             },
             ConsentType = ConsentTypes.Implicit,
             Properties =
             {
-                { "claimTypes", JsonSerializer.SerializeToElement(new[] { "some_claim" }) },
-                { "staticClaims", JsonSerializer.SerializeToElement(new[] { new { Type="claimType", Value="claimValue" } }) }
+                { Constants.Properties.ClaimTypes, JsonSerializer.SerializeToElement(new[] { "some_claim" }) },
+                { Constants.Properties.StaticClaims, JsonSerializer.SerializeToElement(new[] { new { Type="static_1", Value="uhh value!" } }) }
             }
         });
 
@@ -243,71 +253,71 @@ internal static class Startup
         await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
         {
             Name = "openid",
-            Properties = { { "claimTypes", JsonSerializer.SerializeToElement(new[] { "sub", "zdv_sid", "zdv_upn", "upn", "security_identifier", "uid" }) } }
+            Properties = { { Constants.Properties.ClaimTypes, JsonSerializer.SerializeToElement(new[] { "sub", "zdv_sid", "zdv_upn", "upn", "security_identifier", "uid" }) } }
         });
         await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
         {
             Name = "uuid",
-            Properties = { { "claimTypes", JsonSerializer.SerializeToElement(new[] { "umz_uuid" }) }
+            Properties = { { Constants.Properties.ClaimTypes, JsonSerializer.SerializeToElement(new[] { "umz_uuid" }) }
         }
         });
         await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
         {
             Name = "accountname",
-            Properties = { { "claimTypes", JsonSerializer.SerializeToElement(new[] { "zdv_accountName" }) } }
+            Properties = { { Constants.Properties.ClaimTypes, JsonSerializer.SerializeToElement(new[] { "zdv_accountName" }) } }
         });
         await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
         {
             Name = "roles",
-            Properties = { { "claimTypes", JsonSerializer.SerializeToElement(new[] { "role" }) }
+            Properties = { { Constants.Properties.ClaimTypes, JsonSerializer.SerializeToElement(new[] { "role" }) }
 }
         });
         await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
         {
             Name = "groups",
-            Properties = { { "claimTypes", JsonSerializer.SerializeToElement(new[] { "role" }) }
+            Properties = { { Constants.Properties.ClaimTypes, JsonSerializer.SerializeToElement(new[] { "role" }) }
 }
         });
         await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
         {
             Name = "name",
-            Properties = { { "claimTypes", JsonSerializer.SerializeToElement(new[] { "name", "family_name", "given_name" }) }
+            Properties = { { Constants.Properties.ClaimTypes, JsonSerializer.SerializeToElement(new[] { "name", "family_name", "given_name" }) }
 }
         });
         await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
         {
             Name = "email",
-            Properties = { { "claimTypes", JsonSerializer.SerializeToElement(new[] { "email" }) }
+            Properties = { { Constants.Properties.ClaimTypes, JsonSerializer.SerializeToElement(new[] { "email" }) }
 }
         });
         await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
         {
             Name = "phone",
-            Properties = { { "claimTypes", JsonSerializer.SerializeToElement(new[] { "phone_number" }) }
+            Properties = { { Constants.Properties.ClaimTypes, JsonSerializer.SerializeToElement(new[] { "phone_number" }) }
 }
         });
         await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
         {
             Name = "profile",
-            Properties = { { "claimTypes", JsonSerializer.SerializeToElement(new[] { "email", "birthdate", "name", "family_name", "given_name", "gender", "locale", "preferred_username", "picture", "updated_at", "website", "zoneinfo" }) }
+            Properties = { { Constants.Properties.ClaimTypes, JsonSerializer.SerializeToElement(new[] { "email", "birthdate", "name", "family_name", "given_name", "gender", "locale", "preferred_username", "picture", "updated_at", "website", "zoneinfo" }) }
 }
         });
         await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
         {
             Name = "matriculation_number",
-            Properties = { { "claimTypes", JsonSerializer.SerializeToElement(new[] { "matriculation_number" }) }
+            Properties = { { Constants.Properties.ClaimTypes, JsonSerializer.SerializeToElement(new[] { "matriculation_number" }) }
 }
         });
         await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
         {
             Name = "home_dir",
-            Properties = { { "claimTypes", JsonSerializer.SerializeToElement(new[] { "home_directory" }) }
+            Properties = { { Constants.Properties.ClaimTypes, JsonSerializer.SerializeToElement(new[] { "home_directory" }) }
 }
         });
         await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
         {
             Name = "affiliation",
-            Properties = { { "claimTypes", JsonSerializer.SerializeToElement(new[] { "scoped_affiliation" }) } }
+            Properties = { { Constants.Properties.ClaimTypes, JsonSerializer.SerializeToElement(new[] { "scoped_affiliation" }) } }
         });
     }
 #endif
