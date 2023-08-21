@@ -20,16 +20,11 @@ namespace Demo_WebApp.Pages
         {
             var auth = await HttpContext.AuthenticateAsync();
 
-            var result = auth.Properties?.Items
-                .Select(x => $"{x.Key} => {x.Value}\r\n")
-                .Aggregate("", (x, c) => x + c);
+            if(auth.Properties?.Items.Any() == true)
+                Result += string.Join("\r\n", auth.Properties.Items.Select(x => $"{x.Key} => {x.Value}")) + "\r\n"; ;
 
-
-            result += auth.Principal?.Claims
-                .Select(x => $"{x.Type}: {x.Value}\r\n")
-                .Aggregate("", (x, c) => x + c);
-
-            Result = result;
+            if (auth.Principal?.Claims.Any() == true)
+                Result += string.Join("\r\n", auth.Principal.Claims.Select(x => $"{x.Type}: {x.Value}\r\n")) + "\r\n";
         }
     }
 }
