@@ -273,11 +273,10 @@ public class ConnectController : Controller
     private static readonly IEnumerable<string> BothTokens = new[] { Destinations.IdentityToken, Destinations.AccessToken };
     private static readonly IEnumerable<string> AccessToken = new[] { Destinations.AccessToken };
 
-    private IEnumerable<string> GetDestinations(Claim claim, HashSet<string> idTokenClaims)
+    private static IEnumerable<string> GetDestinations(Claim claim, HashSet<string> idTokenClaims)
     {
         return idTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase) 
-            ? BothTokens 
-            : AccessToken;
+            ? BothTokens : AccessToken;
     }
 
 
@@ -341,7 +340,7 @@ public class ConnectController : Controller
         List<object> authorizations, IEnumerable<IClaimProvider> claimProviders,
         CancellationToken ct)
     {
-        var requestedClaims = CollectRequestedClaimTypes(application, requestedScopes, ct);
+        var requestedClaims = CollectRequestedClaimTypes(application, requestedScopes);
 
         var userClaims = new List<(string Type, string Value)>();
         foreach (var cp in claimProviders)
@@ -364,8 +363,8 @@ public class ConnectController : Controller
         // Note: in this sample, the granted scopes match the requested scope
         // but you may want to allow the user to uncheck specific scopes.
         // For that, simply restrict the list of scopes before calling SetScopes.
-        identity.SetScopes(oidcRequest.GetScopes());
-        identity.SetResources(await _scopeManager.ListResourcesAsync(identity.GetScopes()).ToListAsync(ct));
+        identity.SetScopes(requestedScopes.Select(x => x.Name));
+        identity.SetResources(requestedScopes.SelectMany(x => x.Resources));
 
         // Automatically create a permanent authorization to avoid requiring explicit consent
         // for future authorization or token requests containing the same scopes.
@@ -375,21 +374,24 @@ public class ConnectController : Controller
             subject: userId,
             client: application.Id,
             type: AuthorizationTypes.Permanent,
-            scopes: oidcRequest.GetScopes());
+            scopes: oidcRequest.GetScopes(),
+            cancellationToken: ct);
 
         var idTokenClaims = requestedScopes
             .Where(x => x.IsIdTokenScope)
             .SelectMany(x => x.RequestedClaimTypes)
             .ToHashSet();
 
-        identity.SetAuthorizationId(await _authorizationManager.GetIdAsync(authorization));
+        var authorizationId = await _authorizationManager.GetIdAsync(authorization, ct);
+        identity.SetAuthorizationId(authorizationId);
         identity.SetDestinations(c => GetDestinations(c, idTokenClaims));
 
         return identity;
     }
 
 
-    private static HashSet<string> CollectRequestedClaimTypes(ApplicationModel application, IEnumerable<ScopeModel> requestedScopes, CancellationToken ct)
+    private static HashSet<string> CollectRequestedClaimTypes(ApplicationModel application, 
+        IEnumerable<ScopeModel> requestedScopes)
     {
         return requestedScopes
             .SelectMany(x => x.RequestedClaimTypes)
