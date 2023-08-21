@@ -123,7 +123,8 @@ internal static class Startup
                 }
 
 
-                options.UseDataProtection();
+                options.UseDataProtection()
+                    .PreferDefaultAccessTokenFormat();
 
                 // Register the ASP.NET Core host and configure the ASP.NET Core-specific options.
                 options.UseAspNetCore()
