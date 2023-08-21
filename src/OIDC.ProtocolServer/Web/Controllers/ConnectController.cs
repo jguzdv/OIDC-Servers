@@ -1,7 +1,5 @@
 ﻿using System.Collections.Immutable;
-using System.Linq;
 using System.Security.Claims;
-using System.Security.Principal;
 
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
@@ -18,8 +16,6 @@ using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 
-using static System.Net.Mime.MediaTypeNames;
-using static JGUZDV.OIDC.ProtocolServer.Data.Constants;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace JGUZDV.OIDC.ProtocolServer.Web.Controllers;
@@ -48,7 +44,8 @@ public class ConnectController : Controller
     [HttpGet("~/connect/authorize")]
     [HttpPost("~/connect/authorize")]
     [IgnoreAntiforgeryToken]
-    public async Task<IActionResult> Authorize([FromServices]IEnumerable<IClaimProvider> claimProviders,
+    public async Task<IActionResult> Authorize(
+        [FromServices]IEnumerable<IClaimProvider> claimProviders,
         CancellationToken ct)
     {
         var oidcRequest = HttpContext.GetOpenIddictServerRequest() ??
@@ -86,7 +83,10 @@ public class ConnectController : Controller
 
 
     [HttpPost("~/connect/token"), IgnoreAntiforgeryToken, Produces("application/json")]
-    public async Task<IActionResult> Exchange([FromServices] UserValidationProvider userValidation, CancellationToken ct)
+    public async Task<IActionResult> Exchange(
+        [FromServices] IEnumerable<IClaimProvider> claimProviders,
+        [FromServices] UserValidationProvider userValidation, 
+        CancellationToken ct)
     {
         var request = HttpContext.GetOpenIddictServerRequest() ??
             throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
@@ -95,6 +95,17 @@ public class ConnectController : Controller
         {
             // Retrieve the claims principal stored in the authorization code/refresh token.
             var result = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            if(!result.Succeeded)
+            {
+                return Forbid(
+                    authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+                    properties: new AuthenticationProperties(new Dictionary<string, string?>
+                    {
+                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
+                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The refresh token was invalid or already expired."
+                    }));
+            }
+
 
             if (!userValidation.IsUserActive(User))
             {
@@ -124,14 +135,28 @@ public class ConnectController : Controller
                     nameType: Claims.Name,
                     roleType: Claims.Role);
 
-            //// TODO: Override the user claims present in the principal in case they
-            //// changed since the authorization code/refresh token was issued.
-            //identity.SetClaim(Claims.Subject, await _userManager.GetUserIdAsync(user))
-            //        .SetClaim(Claims.Email, await _userManager.GetEmailAsync(user))
-            //        .SetClaim(Claims.Name, await _userManager.GetUserNameAsync(user))
-            //        .SetClaims(Claims.Role, (await _userManager.GetRolesAsync(user)).ToImmutableArray());
+            var scopes = await ScopeModel.FromScopeNamesAsync(_scopeManager, identity.GetScopes(), ct);
+            var idClaims = scopes.Where(x => x.IsIdTokenScope)
+                .SelectMany(x => x.RequestedClaimTypes)
+                .Distinct()
+                .ToHashSet();
 
-            //identity.SetDestinations(GetDestinations);
+            var userClaims = new List<(string Type, string Value)>();
+            foreach (var cp in claimProviders)
+            {
+                var claims = await cp.GetClaimsAsync(User, idClaims.Distinct(), ct);
+                userClaims.AddRange(claims);
+            }
+
+            foreach(var claimType in userClaims.GroupBy(x => x.Type))
+            {
+                if (claimType.Count() > 1)
+                    identity.SetClaim(claimType.Key, claimType.First().Value);
+                else
+                    identity.SetClaims(claimType.Key, claimType.Select(x => x.Value).ToImmutableArray());
+            }
+
+            identity.SetDestinations(x => GetDestinations(x, idClaims));
 
             // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
             return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
