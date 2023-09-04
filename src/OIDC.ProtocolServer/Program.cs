@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
 using OpenIddict.Abstractions;
 
@@ -113,13 +114,13 @@ internal static class Startup
                 if (builder.Environment.IsDevelopment())
                 {
                     options
-                        .DisableAccessTokenEncryption()
                         .AddDevelopmentEncryptionCertificate()
                         .AddDevelopmentSigningCertificate();
                 }
                 else
                 {
                     //TODO: Load keys protected keys from storage - see through auto-rollover
+                    options.AddSigningCredentials(new SigningCredentials())
                 }
 
 
