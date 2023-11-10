@@ -146,7 +146,9 @@ internal static class Startup
         services.AddAutomaticKeyRollover(conf =>
         {
             conf.KeyStorePath = "D:\\Temp\\OIDC-KeyStorePath";
-            conf.DisableKeyGeneration = true;
+            conf.DisableKeyGeneration = false;
+            conf.KeyReloadInterval = TimeSpan.FromSeconds(15);
+            conf.ThresholdFactor = 0.999;
         });
 
         services
