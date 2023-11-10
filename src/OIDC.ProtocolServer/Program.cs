@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 
 using OpenIddict.Abstractions;
 
@@ -21,6 +20,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.ConfigureServices();
 
 var app = builder.Build();
+
 app.Configure();
 
 #if DEBUG
@@ -41,7 +41,10 @@ internal static class Startup
     public static void ConfigureServices(this WebApplicationBuilder builder)
     {
         var services = builder.Services;
-        services.AddControllersWithViews()
+        services.AddTransient(sp => TimeProvider.System);
+        services.AddSingleton(sp => (IConfigurationRoot)sp.GetRequiredService<IConfiguration>());
+         
+        services.AddControllersWithViews() 
             .AddRazorOptions(opt =>
             {
                 opt.ViewLocationFormats.Clear();
@@ -111,18 +114,12 @@ internal static class Startup
                     .AllowRefreshTokenFlow();
 
 
-                if (builder.Environment.IsDevelopment())
-                {
-                    options
-                        .AddDevelopmentEncryptionCertificate()
-                        .AddDevelopmentSigningCertificate();
-                }
-                else
-                {
-                    //TODO: Load keys protected keys from storage - see through auto-rollover
-                    options.AddSigningCredentials(new SigningCredentials())
-                }
-
+                //if (builder.Environment.IsDevelopment())
+                //{
+                //    options
+                //        .AddDevelopmentEncryptionCertificate()
+                //        .AddDevelopmentSigningCertificate();
+                //}
 
                 options.UseDataProtection()
                     .PreferDefaultAccessTokenFormat();
@@ -145,6 +142,12 @@ internal static class Startup
                 options.UseDataProtection();
                 options.UseAspNetCore();
             });
+
+        services.AddAutomaticKeyRollover(conf =>
+        {
+            conf.KeyStorePath = "D:\\Temp\\OIDC-KeyStorePath";
+            conf.DisableKeyGeneration = true;
+        });
 
         services
             .AddOptions<ProtocolServerOptions>()

@@ -1,14 +1,16 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 using OpenIddict.Abstractions;
 
 namespace JGUZDV.OIDC.ProtocolServer.Data
 {
     public record ApplicationModel(
-        string Id,
-        string ClientId,
-        string ConsentType,
-        string DisplayName,
+        [property:NotNull] string? Id,
+        [property: NotNull] string? ClientId,
+        [property: NotNull] string? ConsentType,
+        [property: NotNull] string? DisplayName,
+
         ImmutableArray<string> Persmissions,
         ImmutableArray<(string Type, string Value)> StaticClaims,
         ImmutableArray<string> RequestedClaimTypes
@@ -26,9 +28,9 @@ namespace JGUZDV.OIDC.ProtocolServer.Data
 
             return new ApplicationModel(
                 await appManager.GetIdAsync(application, ct),
-                await appManager.GetClientIdAsync(application, ct),
-                await appManager.GetConsentTypeAsync(application, ct),
-                await appManager.GetLocalizedDisplayNameAsync(application, ct),
+                await appManager.GetClientIdAsync(application, ct)!,
+                await appManager.GetConsentTypeAsync(application, ct)!,
+                await appManager.GetLocalizedDisplayNameAsync(application, ct)!,
                 await appManager.GetPermissionsAsync(application, ct),
                 appProps.StaticClaims.ToImmutableArray(),
                 appProps.ClaimTypes.ToImmutableArray()
