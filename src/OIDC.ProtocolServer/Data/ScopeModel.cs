@@ -6,7 +6,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Data
 {
     public record ScopeModel(
         string Name,
-        string DisplayName,
+        string? DisplayName,
         ImmutableArray<string> Resources,
         ImmutableArray<(string Type, string Value)> StaticClaims,
         ImmutableArray<string> RequestedClaimTypes,
@@ -38,7 +38,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Data
             var scopeProps = new ScopeProperties(props);
 
             return new ScopeModel(
-                await scopeManager.GetNameAsync(scope, ct),
+                (await scopeManager.GetNameAsync(scope, ct))!,
                 await scopeManager.GetDisplayNameAsync(scope, ct),
                 await scopeManager.GetResourcesAsync(scope, ct),
                 scopeProps.StaticClaims.ToImmutableArray(),
