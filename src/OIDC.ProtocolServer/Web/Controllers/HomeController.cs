@@ -1,10 +1,8 @@
-﻿using Azure.Core;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace JGUZDV.OIDC.ProtocolServer.Web.Controllers
 {
@@ -27,17 +25,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Web.Controllers
         public async Task<IActionResult> WhoAmI()
         {
             var auth = await HttpContext.AuthenticateAsync();
-
-            var result = auth.Properties.Items
-                .Select(x => $"{x.Key} => {x.Value}\r\n")
-                .Aggregate("", (x, c) => x + c);
-
-
-            result += auth.Principal.Claims
-                .Select(x => $"{x.Type}: {x.Value}\r\n")
-                .Aggregate("", (x, c) => x + c);
-
-            return Ok(result);
+            return View(auth);
         }
 
         public class ErrorModel
