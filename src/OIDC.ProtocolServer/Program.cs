@@ -43,8 +43,8 @@ internal static class Startup
         var services = builder.Services;
         services.AddTransient(sp => TimeProvider.System);
         services.AddSingleton(sp => (IConfigurationRoot)sp.GetRequiredService<IConfiguration>());
-         
-        services.AddControllersWithViews() 
+
+        services.AddControllersWithViews()
             .AddRazorOptions(opt =>
             {
                 opt.ViewLocationFormats.Clear();
