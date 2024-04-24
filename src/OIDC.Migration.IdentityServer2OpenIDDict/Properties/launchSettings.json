@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "OIDC.Migration.IdentityServer2OpenIDDict": {
+      "commandName": "Project",
+      "commandLineArgs": "\"Server=directorydb-1.zdv.uni-mainz.de;Database=IdentityServer-4;Trusted_Connection=true;Encrypt=false\""
+    }
+  }
+}
