@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
-        <TargetFramework>net8.0-windows</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>JGUZDV.OIDC.ProtocolServer</RootNamespace>
@@ -9,20 +9,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.0" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.4" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.4">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0" />
-        <PackageReference Include="OpenIddict.AspNetCore" Version="5.0.0-preview1.23520.63" />
-        <PackageReference Include="OpenIdDict.EntityFrameworkCore" Version="5.0.0-preview1.23520.63" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.4" />
+        <PackageReference Include="OpenIddict.AspNetCore" Version="5.4.0" />
+        <PackageReference Include="OpenIdDict.EntityFrameworkCore" Version="5.4.0" />
 
         <PackageReference Include="JGUZDV.ActiveDirectory.ClaimProvider" Version="1.0.0-beta" />
+        <PackageReference Include="JGUZDV.OpenIddict.KeyManager" Version="1.0.0-beta" />
         <PackageReference Include="JGUZDV.AspNetCore.Authentication.Cookies" Version="1.0.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\..\..\GitHub-Nuget-Packages\libraries\JGUZDV.OpenIddict.KeyManager\src\JGUZDV.OpenIddict.KeyManager.csproj" />
     </ItemGroup>
 </Project>
