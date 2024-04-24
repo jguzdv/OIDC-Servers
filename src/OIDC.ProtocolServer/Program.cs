@@ -6,6 +6,7 @@ using JGUZDV.OIDC.ProtocolServer;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
 using JGUZDV.OIDC.ProtocolServer.Data;
+using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
 
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -92,6 +93,8 @@ internal static class Startup
             {
                 options.UseEntityFrameworkCore()
                        .UseDbContext<ApplicationDbContext>();
+
+                options.ReplaceApplicationManager<JGUApplicationManager>();
             })
             .AddServer(options =>
             {
@@ -109,7 +112,6 @@ internal static class Startup
 
                 options
                     .AllowAuthorizationCodeFlow()
-                    
                     .AllowDeviceCodeFlow()
                     .AllowRefreshTokenFlow();
 
@@ -147,8 +149,6 @@ internal static class Startup
         {
             conf.KeyStorePath = "D:\\Temp\\OIDC-KeyStorePath";
             conf.DisableKeyGeneration = false;
-            conf.KeyReloadInterval = TimeSpan.FromSeconds(15);
-            conf.ThresholdFactor = 0.999;
         });
 
         services
