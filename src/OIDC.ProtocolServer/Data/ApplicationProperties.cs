@@ -31,12 +31,12 @@ namespace JGUZDV.OIDC.ProtocolServer.Data
             if (properties == null)
                 return;
 
-            ClaimTypes = DeserializeElement<List<string>>(properties, Constants.Properties.ClaimTypes, new());
-            StaticClaims = DeserializeElement<List<(string Type, string Value)>>(properties, Constants.Properties.StaticClaims, new());
+            ClaimTypes = DeserializeElement<List<string>>(properties, Constants.Properties.ClaimTypes, []);
+            StaticClaims = DeserializeElement<List<(string Type, string Value)>>(properties, Constants.Properties.StaticClaims, []);
         }
 
-        public List<(string Type, string Value)> StaticClaims { get; set; } = new();
-        public List<string> ClaimTypes { get; set; } = new();
+        public List<(string Type, string Value)> StaticClaims { get; set; } = [];
+        public List<string> ClaimTypes { get; set; } = [];
     }
 
     public class ApplicationProperties : CommonProperties
@@ -53,7 +53,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Data
         public ScopeProperties(IImmutableDictionary<string, JsonElement>? properties)
             : base(properties)
         {
-            IsIdTokenScope = DeserializeElement<bool>(properties, Constants.Properties.IsIdTokenScope, false);
+            IsIdTokenScope = DeserializeElement(properties, Constants.Properties.IsIdTokenScope, false);
         }
 
         public bool IsIdTokenScope { get; set; }

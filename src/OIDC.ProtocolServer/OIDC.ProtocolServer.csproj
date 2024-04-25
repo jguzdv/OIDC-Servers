@@ -6,6 +6,8 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>JGUZDV.OIDC.ProtocolServer</RootNamespace>
         <UserSecretsId>47a7c02d-e893-4ff7-b122-535e7117d6f9</UserSecretsId>
+
+        <NoWarn>$(NoWarn);CA1416</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
