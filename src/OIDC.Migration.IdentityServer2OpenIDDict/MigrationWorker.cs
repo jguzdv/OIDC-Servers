@@ -1,26 +1,32 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Text.Json;
+
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using OpenIddict.Abstractions;
+
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 internal class MigrationWorker : IHostedService
 {
     private readonly IdentityServer4.EntityFramework.DbContexts.ConfigurationDbContext _srcContext;
     private readonly IdentityServer4.Stores.IClientStore _clientStore;
+    private readonly IOpenIddictApplicationManager _applicationManager;
     private readonly IHostApplicationLifetime _hostApplicationLifetime;
     private readonly ILogger<MigrationWorker> _logger;
 
     public MigrationWorker(
         IdentityServer4.EntityFramework.DbContexts.ConfigurationDbContext srcContext,
         IdentityServer4.Stores.IClientStore clientStore,
+        IOpenIddictApplicationManager applicationManager,
         IHostApplicationLifetime hostApplicationLifetime,
         ILogger<MigrationWorker> logger
     )
     {
         _srcContext = srcContext;
         _clientStore = clientStore;
+        _applicationManager = applicationManager;
         _hostApplicationLifetime = hostApplicationLifetime;
         _logger = logger;
     }
@@ -51,71 +57,40 @@ internal class MigrationWorker : IHostedService
                 if (srcClient == null)
                     continue;
 
-                var targetClient = new OpenIddictApplicationDescriptor
-                {
-                    ClientId = srcClient.ClientId,
-                    ClientSecret = srcClient.ClientSecrets.FirstOrDefault()?.Value,
-                    DisplayName = srcClient.ClientName,
-                    ApplicationType = ApplicationTypes.Web,
-                    ClientType = ClientTypes.Public,
-                    ConsentType = ConsentTypes.Implicit,
-                };
+                var targetClient = await _applicationManager.FindByClientIdAsync(srcClient.ClientId, ct);
+                var clientDescriptor = CreateApplicationDescriptor(srcClient);
+                
+                if(clientDescriptor == null)
+                    continue;
 
-                targetClient.RedirectUris.UnionWith(srcClient.RedirectUris.Select(x => new Uri(x)));
-                targetClient.PostLogoutRedirectUris.UnionWith(srcClient.PostLogoutRedirectUris.Select(x => new Uri(x)));
-
-                foreach (var grantType in srcClient.AllowedGrantTypes)
+                if (targetClient == null)
                 {
-                    switch(grantType)
-                    {
-                        case "implicit":
-                            targetClient.Permissions.Add(Permissions.GrantTypes.Implicit);
-                            break;
-                        case "hybrid":
-                            targetClient.Permissions.Add(Permissions.GrantTypes.Implicit);
-                            targetClient.Permissions.Add(Permissions.GrantTypes.AuthorizationCode);
-                            break;
-                        case "authorization_code":
-                            targetClient.Permissions.Add(Permissions.GrantTypes.AuthorizationCode);
-                            break;
-                        case "client_credentials":
-                            targetClient.Permissions.Add(Permissions.GrantTypes.ClientCredentials);
-                            break;
-                        case "password":
-                            targetClient.Permissions.Add(Permissions.GrantTypes.Password);
-                            break;
-                        case "refresh_token":
-                            targetClient.Permissions.Add(Permissions.GrantTypes.RefreshToken);
-                            break;
-                        default:
-                            throw new NotSupportedException($"Grant type {grantType} is not supported");
-                    }
+                    await _applicationManager.CreateAsync(clientDescriptor, ct);
+                }
+                else
+                {
+                    await _applicationManager.UpdateAsync(targetClient, clientDescriptor, ct);
                 }
 
-                foreach (var scope in srcClient.AllowedScopes)
-                {
-                    targetClient.Permissions.Add(Permissions.Prefixes.Scope + scope);
-                }
-
-            //        new applicationManager.CreateAsync(new OpenIddictApplicationDescriptor
-            //    {
-            //        ClientId = "sample",
-            //        ClientSecret = "P@ssword!1",
-            //        Permissions =
-            //{
-            //    Permissions.Scopes.Profile,
-            //    Permissions.Prefixes.Scope + "sample",
-            //    Permissions.Endpoints.Authorization,
-            //    Permissions.Endpoints.Token,
-            //    Permissions.GrantTypes.AuthorizationCode,
-            //    Permissions.ResponseTypes.Code,
-            //},
-            //        Properties =
-            //{
-            //    { Constants.Properties.ClaimTypes, JsonSerializer.SerializeToElement(new[] { "some_claim" }) },
-            //    { Constants.Properties.StaticClaims, JsonSerializer.SerializeToElement(new[] { new { Type="static_1", Value="uhh value!" } }) }
-            //}
-            //    });
+                //        new applicationManager.CreateAsync(new OpenIddictApplicationDescriptor
+                //    {
+                //        ClientId = "sample",
+                //        ClientSecret = "P@ssword!1",
+                //        Permissions =
+                //{
+                //    Permissions.Scopes.Profile,
+                //    Permissions.Prefixes.Scope + "sample",
+                //    Permissions.Endpoints.Authorization,
+                //    Permissions.Endpoints.Token,
+                //    Permissions.GrantTypes.AuthorizationCode,
+                //    Permissions.ResponseTypes.Code,
+                //},
+                //        Properties =
+                //{
+                //    { Constants.Properties.ClaimTypes, JsonSerializer.SerializeToElement(new[] { "some_claim" }) },
+                //    { Constants.Properties.StaticClaims, JsonSerializer.SerializeToElement(new[] { new { Type="static_1", Value="uhh value!" } }) }
+                //}
+                //    });
 
                 _logger.LogInformation("Client {clientId} has been loaded", clientId);
             }
@@ -127,5 +102,73 @@ internal class MigrationWorker : IHostedService
         }
         
         _hostApplicationLifetime.StopApplication();
+    }
+
+    private OpenIddictApplicationDescriptor? CreateApplicationDescriptor(IdentityServer4.Models.Client srcClient)
+    {
+        try
+        {
+            var hasSecret = srcClient.ClientSecrets.Any();
+
+            var descriptor = new OpenIddictApplicationDescriptor
+            {
+                ClientId = srcClient.ClientId,
+                ClientSecret = srcClient.ClientSecrets.FirstOrDefault()?.Value,
+                DisplayName = srcClient.ClientName,
+                ApplicationType = ApplicationTypes.Web,
+                ClientType = hasSecret ? ClientTypes.Confidential : ClientTypes.Public,
+                ConsentType = ConsentTypes.Implicit
+            };
+
+            descriptor.RedirectUris.UnionWith(srcClient.RedirectUris.Select(x => new Uri(x)));
+            descriptor.PostLogoutRedirectUris.UnionWith(srcClient.PostLogoutRedirectUris.Select(x => new Uri(x)));
+
+            foreach (var grantType in srcClient.AllowedGrantTypes)
+            {
+                switch (grantType)
+                {
+                    case "implicit":
+                        descriptor.Permissions.Add(Permissions.GrantTypes.Implicit);
+                        break;
+                    case "hybrid":
+                        descriptor.Permissions.Add(Permissions.GrantTypes.Implicit);
+                        descriptor.Permissions.Add(Permissions.GrantTypes.AuthorizationCode);
+                        break;
+                    case "authorization_code":
+                        descriptor.Permissions.Add(Permissions.GrantTypes.AuthorizationCode);
+                        break;
+                    case "client_credentials":
+                        descriptor.Permissions.Add(Permissions.GrantTypes.ClientCredentials);
+                        break;
+                    case "password":
+                        descriptor.Permissions.Add(Permissions.GrantTypes.Password);
+                        break;
+                    case "refresh_token":
+                        descriptor.Permissions.Add(Permissions.GrantTypes.RefreshToken);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Grant type {grantType} is not supported");
+                }
+            }
+
+            foreach (var scope in srcClient.AllowedScopes)
+            {
+                descriptor.Permissions.Add(Permissions.Prefixes.Scope + scope);
+            }
+
+            return descriptor;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not create OpenIddict Client");
+
+            var jsonClient = JsonSerializer.Serialize(srcClient, new JsonSerializerOptions(JsonSerializerDefaults.General)
+            {
+                WriteIndented = true
+            });
+            _logger.LogInformation(jsonClient);
+
+            return null;
+        }
     }
 }
