@@ -7,13 +7,12 @@ namespace JGUZDV.OIDC.ProtocolServer.Data
 {
     public record ApplicationModel(
         [property:NotNull] string? Id,
-        [property: NotNull] string? ClientId,
-        [property: NotNull] string? ConsentType,
-        [property: NotNull] string? DisplayName,
+        [property:NotNull] string? ClientId,
+        [property:NotNull] string? ConsentType,
+        [property:NotNull] string? DisplayName,
 
         ImmutableArray<string> Persmissions,
-        ImmutableArray<(string Type, string Value)> StaticClaims,
-        ImmutableArray<string> RequestedClaimTypes
+        ApplicationProperties Properties
         )
     {
         public static async Task<ApplicationModel> FromClientIdAsync(
@@ -24,7 +23,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Data
                 throw new InvalidOperationException("Details concerning the calling client application cannot be found.");
 
             var props = await appManager.GetPropertiesAsync(application, ct);
-            var appProps = new ApplicationProperties(props);
+            var appProps = ApplicationProperties.DeserializeFromProperties(props);
 
             return new ApplicationModel(
                 await appManager.GetIdAsync(application, ct),
@@ -32,8 +31,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Data
                 await appManager.GetConsentTypeAsync(application, ct)!,
                 await appManager.GetLocalizedDisplayNameAsync(application, ct)!,
                 await appManager.GetPermissionsAsync(application, ct),
-                appProps.StaticClaims.ToImmutableArray(),
-                appProps.ClaimTypes.ToImmutableArray()
+                appProps
                 );
         }
     }

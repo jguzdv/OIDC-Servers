@@ -8,9 +8,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Data
         string Name,
         string? DisplayName,
         ImmutableArray<string> Resources,
-        ImmutableArray<(string Type, string Value)> StaticClaims,
-        ImmutableArray<string> RequestedClaimTypes,
-        bool IsIdTokenScope)
+        ScopeProperties Properties)
     {
         public static async Task<ScopeModel?> FromScopeNameAsync(
             IOpenIddictScopeManager scopeManager,
@@ -35,15 +33,13 @@ namespace JGUZDV.OIDC.ProtocolServer.Data
         private static async Task<ScopeModel> FromScopeObject(IOpenIddictScopeManager scopeManager, object scope, CancellationToken ct)
         {
             var props = await scopeManager.GetPropertiesAsync(scope, ct);
-            var scopeProps = new ScopeProperties(props);
+            var scopeProps = ScopeProperties.DeserializeFromProperties(props);
 
             return new ScopeModel(
                 (await scopeManager.GetNameAsync(scope, ct))!,
                 await scopeManager.GetDisplayNameAsync(scope, ct),
                 await scopeManager.GetResourcesAsync(scope, ct),
-                scopeProps.StaticClaims.ToImmutableArray(),
-                scopeProps.ClaimTypes.ToImmutableArray(),
-                scopeProps.IsIdTokenScope
+                scopeProps
                 );
         }
     }

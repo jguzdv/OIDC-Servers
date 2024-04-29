@@ -3,7 +3,6 @@ using System.Security.Claims;
 
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
-using JGUZDV.OIDC.ProtocolServer.Data;
 using JGUZDV.OIDC.ProtocolServer.Extensions;
 
 using Microsoft.AspNetCore;
@@ -16,7 +15,9 @@ using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 
+using Claim = System.Security.Claims.Claim;
 using static OpenIddict.Abstractions.OpenIddictConstants;
+using JGUZDV.OIDC.ProtocolServer.Data;
 
 namespace JGUZDV.OIDC.ProtocolServer.Web.Controllers;
 
@@ -138,8 +139,9 @@ public class ConnectController : Controller
                 roleType: Claims.Role);
 
         var scopes = await ScopeModel.FromScopeNamesAsync(_scopeManager, identity.GetScopes(), ct);
-        var idClaims = scopes.Where(x => x.IsIdTokenScope)
-            .SelectMany(x => x.RequestedClaimTypes)
+        var idClaims = scopes
+            .Where(x => x.Properties.TargetToken.Contains(Destinations.IdentityToken))
+            .SelectMany(x => x.Properties.RequestedClaimTypes)
             .Distinct()
             .ToHashSet();
 
@@ -377,8 +379,8 @@ public class ConnectController : Controller
             cancellationToken: ct);
 
         var idTokenClaims = requestedScopes
-            .Where(x => x.IsIdTokenScope)
-            .SelectMany(x => x.RequestedClaimTypes)
+            .Where(x => x.Properties.TargetToken.Contains(Destinations.IdentityToken))
+            .SelectMany(x => x.Properties.RequestedClaimTypes)
             .ToHashSet();
 
         var authorizationId = await _authorizationManager.GetIdAsync(authorization, ct);
@@ -393,8 +395,8 @@ public class ConnectController : Controller
         IEnumerable<ScopeModel> requestedScopes)
     {
         return requestedScopes
-            .SelectMany(x => x.RequestedClaimTypes)
-            .Concat(application.RequestedClaimTypes)
+            .SelectMany(x => x.Properties.RequestedClaimTypes)
+            .Concat(application.Properties.RequestedClaimTypes)
             .ToHashSet();
     }
 

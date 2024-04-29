@@ -85,36 +85,6 @@ internal class MigrationWorker : IHostedService
                 _logger.LogInformation("Updated existing Scope with Name: {scopeName}", scope.Name);
             }
         }
-
-        //foreach (var scope in scopes)
-        //{
-        //    try
-        //    {
-        //        var scopeModel = await ScopeModel.FromScopeNameAsync(_resourceStore, scope.Name, ct);
-        //        if (scopeModel == null)
-        //            continue;
-
-        //        var descriptor = new OpenIddictScopeDescriptor
-        //        {
-        //            Name = scopeModel.Name,
-        //            Resources = scopeModel.Resources,
-        //            DisplayName = scopeModel.DisplayName,
-        //            Properties =
-        //            {
-        //                { Constants.Properties.ClaimTypes, JsonSerializer.SerializeToElement(scopeModel.RequestedClaimTypes) },
-        //                { Constants.Properties.StaticClaims, JsonSerializer.SerializeToElement(scopeModel.StaticClaims) },
-        //                { Constants.Properties.IsIdTokenScope, scopeModel.IsIdTokenScope }
-        //            }
-        //        };
-
-        //        await _resourceStore.CreateScopeAsync(descriptor, ct);
-        //        _logger.LogInformation("Created new Scope: {scopeName}", scopeModel.Name);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error creating scope {scopeName}", scope.Name);
-        //    }
-        //}
     }
 
     private OpenIddictScopeDescriptor? CreateScopeDescriptor(IdentityServer4.Models.Resource srcScope)
@@ -123,17 +93,20 @@ internal class MigrationWorker : IHostedService
         {
             Name = srcScope.Name,
             DisplayName = srcScope.DisplayName,
-            Description = srcScope.Description,
-            Properties =
-            {
-                { Constants.Properties.ClaimTypes, JsonSerializer.SerializeToElement(srcScope.UserClaims) }
-            },
+            Description = srcScope.Description
+        };
+
+        var props = new ScopeProperties()
+        {
+            RequestedClaimTypes = new(srcScope.UserClaims),
         };
 
         if(srcScope is IdentityServer4.Models.IdentityResource)
         {
-            descriptor.Properties.Add(Constants.Properties.IsIdTokenScope, JsonSerializer.SerializeToElement(true));
+            props.TargetToken = new() { Destinations.IdentityToken };
         }
+
+        descriptor.Properties.Add(CustomProperties.PropertyName, props.Serialize());
 
         return descriptor;
     }
@@ -245,16 +218,14 @@ internal class MigrationWorker : IHostedService
                 descriptor.Permissions.Add(Permissions.Prefixes.Scope + scope);
             }
 
-            if(srcClient.Claims.Any())
-            {
-                var claims = srcClient.Claims.Select(x => (x.Type, x.Value));
-                descriptor.Properties.Add("staticClaims", JsonSerializer.SerializeToElement(claims));
-            }
+            var props = new ApplicationProperties();
+            props.StaticClaims.AddRange(
+                srcClient.Claims.Select(x => new Claim(x.Type, x.Value))
+            );
 
 
-            
             // TODO: Permission: refresh-token 
-            
+
 
             //        new applicationManager.CreateAsync(new OpenIddictApplicationDescriptor
             //    {
@@ -276,6 +247,7 @@ internal class MigrationWorker : IHostedService
             //}
             //    });
 
+            descriptor.Properties.Add(CustomProperties.PropertyName, props.Serialize());
             return descriptor;
         }
         catch (Exception ex)
