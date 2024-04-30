@@ -10,6 +10,7 @@
   <ItemGroup>
     <Compile Include="..\OIDC.ProtocolServer\Data\Claim.cs" Link="Claim.cs" />
     <Compile Include="..\OIDC.ProtocolServer\Data\CustomProperties.cs" Link="CustomProperties.cs" />
+    <Compile Include="..\OIDC.ProtocolServer\Data\MFAProps.cs" Link="MFAProps.cs" />
   </ItemGroup>
 
   <ItemGroup>
