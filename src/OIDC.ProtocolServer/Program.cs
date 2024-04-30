@@ -1,13 +1,17 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text.Json;
 
 using JGUZDV.ActiveDirectory.ClaimProvider.Configuration;
 using JGUZDV.OIDC.ProtocolServer;
+using JGUZDV.OIDC.ProtocolServer.Authentication;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
 using JGUZDV.OIDC.ProtocolServer.Data;
+using JGUZDV.OIDC.ProtocolServer.Extensions;
 using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
 
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
@@ -15,8 +19,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
 
 using OpenIddict.Abstractions;
-
-using static OpenIddict.Abstractions.OpenIddictConstants;
+using OpenIddictConstants = OpenIddict.Abstractions.OpenIddictConstants;
 
 IdentityModelEventSource.ShowPII = true;
 JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
@@ -51,17 +54,35 @@ else
     throw new NotImplementedException();
 }
 
+services.AddSingleton<CustomOpenIdConnectEvents>();
 services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
 })
-    .AddOpenIdConnect(options =>
-    {
-                builder.Configuration
-                    .GetSection("Authentication:OpenIdConnect")
-                    .Bind(options);
-    })
+    .AddOpenIdConnect(
+        Constants.AuthenticationSchemes.OIDC,
+        options =>
+        {
+            builder.Configuration
+                .GetSection("Authentication:OpenIdConnect")
+                .Bind(options);
+
+            options.EventsType = typeof(CustomOpenIdConnectEvents);
+        }
+    )
+    .AddOpenIdConnect(
+        Constants.AuthenticationSchemes.MFA,
+        options =>
+        {
+            builder.Configuration
+                .GetSection("Authentication:OpenIdConnect-MFA")
+                .Bind(options);
+
+            options.CallbackPath = "/signin-oidc-mfa";
+            options.EventsType = typeof(CustomOpenIdConnectEvents);
+        }
+    )
     .AddCookie(options =>
     {
         options.LoginPath = "/authn/login";
@@ -232,14 +253,14 @@ internal static class Startup
             RedirectUris = { new Uri("https://localhost:5001/signin-oidc") },
             Permissions =
             {
-                Permissions.Scopes.Profile,
-                Permissions.Prefixes.Scope + "sample",
-                Permissions.Endpoints.Authorization,
-                Permissions.Endpoints.Token,
-                Permissions.GrantTypes.AuthorizationCode,
-                Permissions.ResponseTypes.Code,
+                OpenIddictConstants.Permissions.Scopes.Profile,
+                OpenIddictConstants.Permissions.Prefixes.Scope + "sample",
+                OpenIddictConstants.Permissions.Endpoints.Authorization,
+                OpenIddictConstants.Permissions.Endpoints.Token,
+                OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
+                OpenIddictConstants.Permissions.ResponseTypes.Code,
             },
-            ConsentType = ConsentTypes.Implicit,
+            ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
             Properties =
             {
                 {
@@ -248,6 +269,45 @@ internal static class Startup
                         {
                             RequestedClaimTypes = ["some_claim"],
                             StaticClaims = [new("static_1", "uhh value!")]
+                        }
+                    ).Serialize()
+                }
+            }
+        });
+
+        sampleClient = await applicationManager.FindByClientIdAsync("sample-mfa");
+        if (sampleClient != null)
+        {
+            await applicationManager.DeleteAsync(sampleClient);
+        }
+
+        await applicationManager.CreateAsync(new OpenIddictApplicationDescriptor
+        {
+            ClientId = "sample-mfa",
+            ClientSecret = "P@ssword!1",
+            RedirectUris = { new Uri("https://localhost:5001/signin-oidc") },
+            Permissions =
+            {
+                OpenIddictConstants.Permissions.Scopes.Profile,
+                OpenIddictConstants.Permissions.Prefixes.Scope + "sample",
+                OpenIddictConstants.Permissions.Endpoints.Authorization,
+                OpenIddictConstants.Permissions.Endpoints.Token,
+                OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
+                OpenIddictConstants.Permissions.ResponseTypes.Code,
+            },
+            ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
+            Properties =
+            {
+                {
+                    CustomProperties.PropertyName,
+                    (new ApplicationProperties
+                        {
+                            RequestedClaimTypes = ["some_claim"],
+                            StaticClaims = [new("static_1", "uhh value!")],
+                            MFA = new()
+                            {
+                                Required = true,
+                            }
                         }
                     ).Serialize()
                 }

@@ -1,8 +1,10 @@
 ﻿using System.Collections.Immutable;
+using System.Globalization;
 using System.Security.Claims;
 
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
+using JGUZDV.OIDC.ProtocolServer.Data;
 using JGUZDV.OIDC.ProtocolServer.Extensions;
 
 using Microsoft.AspNetCore;
@@ -15,32 +17,25 @@ using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 
-using Claim = System.Security.Claims.Claim;
 using static OpenIddict.Abstractions.OpenIddictConstants;
-using JGUZDV.OIDC.ProtocolServer.Data;
+
+using Claim = System.Security.Claims.Claim;
 
 namespace JGUZDV.OIDC.ProtocolServer.Web.Controllers;
 
-public class ConnectController : Controller
+public class ConnectController(
+    IOpenIddictApplicationManager applicationManager,
+    IOpenIddictAuthorizationManager authorizationManager,
+    IOpenIddictScopeManager scopeManager,
+    TimeProvider timeProvider,
+    IOptions<ProtocolServerOptions> options) : Controller
 {
-    private readonly IOpenIddictApplicationManager _applicationManager;
-    private readonly IOpenIddictAuthorizationManager _authorizationManager;
-    private readonly IOpenIddictScopeManager _scopeManager;
+    private readonly IOpenIddictApplicationManager _applicationManager = applicationManager;
+    private readonly IOpenIddictAuthorizationManager _authorizationManager = authorizationManager;
+    private readonly IOpenIddictScopeManager _scopeManager = scopeManager;
+    private readonly TimeProvider _timeProvider = timeProvider;
+    private readonly IOptions<ProtocolServerOptions> _options = options;
 
-    private readonly IOptions<ProtocolServerOptions> _options;
-
-    public ConnectController(
-        IOpenIddictApplicationManager applicationManager,
-        IOpenIddictAuthorizationManager authorizationManager,
-        IOpenIddictScopeManager scopeManager,
-        IOptions<ProtocolServerOptions> options)
-    {
-        _applicationManager = applicationManager;
-        _authorizationManager = authorizationManager;
-        _scopeManager = scopeManager;
-
-        _options = options;
-    }
 
     [HttpGet("~/connect/authorize")]
     [HttpPost("~/connect/authorize")]
@@ -52,12 +47,12 @@ public class ConnectController : Controller
         var oidcRequest = HttpContext.GetOpenIddictServerRequest() ??
             throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
-        if ((await CheckIfChallengeIsNeededAsync(oidcRequest)) is IActionResult challengeResult)
-            return challengeResult;
-
         var application = await ApplicationModel.FromClientIdAsync(_applicationManager, oidcRequest.ClientId!, ct);
         var scopes = await ScopeModel.FromScopeNamesAsync(_scopeManager, oidcRequest.GetScopes(), ct);
         
+        if ((await CheckIfChallengeIsNeededAsync(oidcRequest, application, scopes)) is IActionResult challengeResult)
+            return challengeResult;
+
         var userId = User.GetClaim(_options.Value.UserClaimType) ??
             throw new InvalidOperationException($"The user is missing the claim {_options.Value.UserClaimType}.");
 
@@ -271,8 +266,8 @@ public class ConnectController : Controller
 
     // --- Private methods --- //
 
-    private static readonly IEnumerable<string> BothTokens = new[] { Destinations.IdentityToken, Destinations.AccessToken };
-    private static readonly IEnumerable<string> AccessToken = new[] { Destinations.AccessToken };
+    private static readonly IEnumerable<string> BothTokens = [Destinations.IdentityToken, Destinations.AccessToken];
+    private static readonly IEnumerable<string> AccessToken = [Destinations.AccessToken];
 
     private static IEnumerable<string> GetDestinations(Claim claim, HashSet<string> idTokenClaims)
     {
@@ -281,7 +276,10 @@ public class ConnectController : Controller
     }
 
 
-    private async Task<IActionResult?> CheckIfChallengeIsNeededAsync(OpenIddictRequest oidcRequest)
+    private async Task<IActionResult?> CheckIfChallengeIsNeededAsync(
+        OpenIddictRequest oidcRequest,
+        ApplicationModel application, 
+        ImmutableArray<ScopeModel> scopes)
     {
         var authenticationResult = await HttpContext.AuthenticateAsync();
 
@@ -289,17 +287,12 @@ public class ConnectController : Controller
         // the user agent to the login page (or to an external provider) in the following cases:
         //
         //  - If the user principal can't be extracted or the cookie is too old.
-        //  - If a max_age parameter was provided and the authentication cookie is not considered "fresh" enough.
-        //  - If prompt=login was specified by the client application
-        //    and the login is older than 5 minutes (else, we'll ignore that prompt)
-        var issuedAt = authenticationResult?.Properties?.IssuedUtc ?? DateTimeOffset.MinValue;
-        var maxAge = oidcRequest.HasPrompt(Prompts.Login)
-            ? TimeSpan.FromMinutes(5)
-            : oidcRequest.MaxAge != null
-                ? TimeSpan.FromSeconds(oidcRequest.MaxAge.Value)
-                : TimeSpan.MaxValue;
 
-        var needsChallenge = authenticationResult?.Succeeded != true || DateTimeOffset.UtcNow - issuedAt > maxAge;
+        bool requestNeedsMFA = false;
+        var needsChallenge = authenticationResult?.Succeeded != true 
+            || HasLoginPromptOrIsTooOld() 
+            || (requestNeedsMFA = NeedsMFAChallange());
+            
         if (needsChallenge)
         {
             // If the client application requested promptless authentication,
@@ -329,10 +322,60 @@ public class ConnectController : Controller
                 properties: new AuthenticationProperties
                 {
                     RedirectUri = Request.PathBase + Request.Path + QueryString.Create(parameters)
-                });
+                },
+                requestNeedsMFA ? Constants.AuthenticationSchemes.MFA : Constants.AuthenticationSchemes.OIDC);
         }
 
         return null;
+
+
+        bool HasLoginPromptOrIsTooOld()
+        {
+            //  If a max_age parameter was provided and the authentication cookie is not considered "fresh" enough.
+            //  If prompt=login was specified by the client application and the login is older than 5 minutes (else, we'll ignore that prompt)
+
+            var issuedAt = authenticationResult?.Properties?.IssuedUtc ?? DateTimeOffset.MinValue;
+            var maxAge = oidcRequest.HasPrompt(Prompts.Login)
+                ? TimeSpan.FromMinutes(5)
+                : oidcRequest.MaxAge != null
+                    ? TimeSpan.FromSeconds(oidcRequest.MaxAge.Value)
+                    : TimeSpan.MaxValue;
+
+            return _timeProvider.GetUtcNow() - issuedAt > maxAge;
+        }
+
+        bool NeedsMFAChallange()
+        {
+            var mfaRequirements = scopes
+                .Where(x => x.Properties.MFA.Required)
+                .Select(x => x.Properties.MFA);
+
+            if(application.Properties.MFA.Required)
+                mfaRequirements = mfaRequirements.Append(application.Properties.MFA);
+
+            if (!mfaRequirements.Any())
+                return false;
+
+            // Check if the user has mfa'd already
+            if(User?.FindFirstValue(Constants.ClaimTypes.MFAAuthTime) is not string mfaAuthTimeValue)
+                return true;
+
+            // Check if any MFA requirement has a max age
+            if(!mfaRequirements.Any(x => x.MaxAge.HasValue))
+                return false;
+
+            // Convert mfaAuthTime from string to DateTimeOffset
+            var mfaAuthTimeEpoch = long.Parse(mfaAuthTimeValue, NumberStyles.Integer, CultureInfo.InvariantCulture);
+            var mfaAuthTime = DateTimeOffset.FromUnixTimeSeconds(mfaAuthTimeEpoch);
+
+            var maxAge = mfaRequirements
+                .Where(x => x.MaxAge.HasValue)
+                .Select(x => x.MaxAge!.Value)
+                .Min();
+
+            // The users MFA claim is too old
+            return _timeProvider.GetUtcNow() - mfaAuthTime > maxAge;
+        }
     }
 
     private async Task<ClaimsIdentity> CreateIdentityAsync(

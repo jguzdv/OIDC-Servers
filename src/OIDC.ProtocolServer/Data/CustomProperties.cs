@@ -21,6 +21,8 @@ namespace JGUZDV.OIDC.ProtocolServer.Data
 
         public List<Claim> StaticClaims { get; set; } = new();
         public List<string> RequestedClaimTypes { get; set; } = new();
+
+        public MFAProps MFA { get; set; } = new();
     }
 
     public class ApplicationProperties : CustomProperties
