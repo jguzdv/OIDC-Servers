@@ -1,10 +1,35 @@
 ﻿@page
+@using Microsoft.AspNetCore.WebUtilities
+@using System.Text
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @model IndexModel
 @{
     ViewData["Title"] = "Home page";
 }
 
-<pre>
-    @Model.Result
-</pre>
+<h1>Properties</h1>
+
+<ul>
+    @foreach(var item in Model.AuthResult.Properties!.Items)
+    {
+        <li><b>@item.Key:</b> @item.Value</li>
+    }
+</ul>
+
+<h2>AccessToken</h2>
+<p>
+    @Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Model.AuthResult.Properties.Items[".Token.access_token"].Split(".", 3)[1]))
+</p>
+
+<h2>IdToken</h2>
+<p>
+    @Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Model.AuthResult.Properties.Items[".Token.id_token"].Split(".", 3)[1]))
+</p>
+
+<h1>Claims</h1>
+<ul>
+    @foreach (var item in Model.AuthResult.Principal.Claims)
+    {
+        <li><b>@item.Type:</b> @item.Value</li>
+    }
+</ul>

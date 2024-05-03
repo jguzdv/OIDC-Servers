@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text.Json;
 
 using JGUZDV.ActiveDirectory.ClaimProvider.Configuration;
+using JGUZDV.ActiveDirectory.Configuration;
 using JGUZDV.OIDC.ProtocolServer;
 using JGUZDV.OIDC.ProtocolServer.Authentication;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
@@ -128,6 +129,9 @@ services.AddOpenIddict()
 
         options.UseDataProtection()
             .PreferDefaultAccessTokenFormat();
+
+        // TODO: Consider reenabling this.
+        options.Configure(opt => opt.DisableAccessTokenEncryption = true);
 
         // Register the ASP.NET Core host and configure the ASP.NET Core-specific options.
         options.UseAspNetCore()
@@ -444,7 +448,8 @@ internal static class Startup
                 CustomProperties.PropertyName,
                 (new ScopeProperties
                     {
-                        RequestedClaimTypes = ["email", "birthdate", "name", "family_name", "given_name", "gender", "locale", "preferred_username", "picture", "updated_at", "website", "zoneinfo"]
+                        RequestedClaimTypes = ["email", "birthdate", "name", "family_name", "given_name", "gender", "locale", "preferred_username", "picture", "updated_at", "website", "zoneinfo"],
+                        TargetToken = { "id_token" }
                     }).Serialize()
                 }
             }

@@ -1,8 +1,11 @@
+using System.IdentityModel.Tokens.Jwt;
+
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Logging;
 
 IdentityModelEventSource.ShowPII = true;
+JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +20,7 @@ builder.Services.AddAuthentication(options =>
             .AddOpenIdConnect(options =>
             {
                 options.Authority = "https://localhost:6001/";
-                options.ClientId = "sample";
+                options.ClientId = "sample-mfa";
                 options.ClientSecret = "P@ssword!1";
                 options.ResponseType = "code";
 

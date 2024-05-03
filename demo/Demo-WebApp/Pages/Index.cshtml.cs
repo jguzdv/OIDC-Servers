@@ -13,18 +13,12 @@ namespace Demo_WebApp.Pages
             _logger = logger;
         }
 
-        public string Result { get; set; }
+        public AuthenticateResult AuthResult { get; set; }
 
         [Authorize]
         public async Task OnGet()
         {
-            var auth = await HttpContext.AuthenticateAsync();
-
-            if(auth.Properties?.Items.Any() == true)
-                Result += string.Join("\r\n", auth.Properties.Items.Select(x => $"{x.Key} => {x.Value}")) + "\r\n"; ;
-
-            if (auth.Principal?.Claims.Any() == true)
-                Result += string.Join("\r\n", auth.Principal.Claims.Select(x => $"{x.Type}: {x.Value}\r\n")) + "\r\n";
+            AuthResult = await HttpContext.AuthenticateAsync();
         }
     }
 }

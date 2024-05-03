@@ -21,7 +21,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "demo", "demo", "{B247DC56-D
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Demo-WebApp", "demo\Demo-WebApp\Demo-WebApp.csproj", "{C471B0BE-0C1D-48F4-8382-D244BA08FCD0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OIDC.Migration.IdentityServer2OpenIDDict", "src\OIDC.Migration.IdentityServer2OpenIDDict\OIDC.Migration.IdentityServer2OpenIDDict.csproj", "{431E71C2-AD69-4E46-9CE3-FD7E26837CDE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OIDC.Migration.IdentityServer2OpenIDDict", "src\OIDC.Migration.IdentityServer2OpenIDDict\OIDC.Migration.IdentityServer2OpenIDDict.csproj", "{431E71C2-AD69-4E46-9CE3-FD7E26837CDE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JGUZDV.ActiveDirectory", "..\GitHub-Nuget-Packages\libraries\JGUZDV.ActiveDirectory\src\JGUZDV.ActiveDirectory.csproj", "{A20B35B2-2B03-4EBC-8029-33E4E50FE0F8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JGUZDV.ActiveDirectory.ClaimProvider", "..\GitHub-Nuget-Packages\libraries\JGUZDV.ActiveDirectory.ClaimProvider\src\JGUZDV.ActiveDirectory.ClaimProvider.csproj", "{FFAA721B-6690-4424-9AB2-C2E20F925FD9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +49,14 @@ Global
 		{431E71C2-AD69-4E46-9CE3-FD7E26837CDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{431E71C2-AD69-4E46-9CE3-FD7E26837CDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{431E71C2-AD69-4E46-9CE3-FD7E26837CDE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A20B35B2-2B03-4EBC-8029-33E4E50FE0F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A20B35B2-2B03-4EBC-8029-33E4E50FE0F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A20B35B2-2B03-4EBC-8029-33E4E50FE0F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A20B35B2-2B03-4EBC-8029-33E4E50FE0F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FFAA721B-6690-4424-9AB2-C2E20F925FD9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FFAA721B-6690-4424-9AB2-C2E20F925FD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FFAA721B-6690-4424-9AB2-C2E20F925FD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FFAA721B-6690-4424-9AB2-C2E20F925FD9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -54,6 +66,8 @@ Global
 		{34B29786-EBBF-4DC1-8C27-76A4E8C52BFC} = {9D9E1093-74C3-44F3-B368-EE5062508CF6}
 		{C471B0BE-0C1D-48F4-8382-D244BA08FCD0} = {B247DC56-DE4D-425A-B61A-39B031E1BF5B}
 		{431E71C2-AD69-4E46-9CE3-FD7E26837CDE} = {9D9E1093-74C3-44F3-B368-EE5062508CF6}
+		{A20B35B2-2B03-4EBC-8029-33E4E50FE0F8} = {9D9E1093-74C3-44F3-B368-EE5062508CF6}
+		{FFAA721B-6690-4424-9AB2-C2E20F925FD9} = {9D9E1093-74C3-44F3-B368-EE5062508CF6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {07A44CDC-6E0B-4FD0-97BA-453B23FED63F}

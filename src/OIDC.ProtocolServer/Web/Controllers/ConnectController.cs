@@ -36,6 +36,11 @@ public class ConnectController(
     private readonly TimeProvider _timeProvider = timeProvider;
     private readonly IOptions<ProtocolServerOptions> _options = options;
 
+    private readonly ISet<string> _remoteClaimTypes = new HashSet<string>()
+    {
+        Claims.AuthenticationMethodReference,
+        "mfa_auth_time"
+    };
 
     [HttpGet("~/connect/authorize")]
     [HttpPost("~/connect/authorize")]
@@ -137,7 +142,7 @@ public class ConnectController(
         var idClaims = scopes
             .Where(x => x.Properties.TargetToken.Contains(Destinations.IdentityToken))
             .SelectMany(x => x.Properties.RequestedClaimTypes)
-            .Distinct()
+            .Concat(_remoteClaimTypes)
             .ToHashSet();
 
         var userClaims = new List<(string Type, string Value)>();
@@ -404,6 +409,11 @@ public class ConnectController(
             identity.SetClaim(c.Type, c.Value);
         }
 
+        foreach (var remoteClaim in User.Claims.Where(x => _remoteClaimTypes.Contains(x.Type)))
+        {
+            identity.AddClaim(remoteClaim.Type, remoteClaim.Value);
+        }
+
         // Note: in this sample, the granted scopes match the requested scope
         // but you may want to allow the user to uncheck specific scopes.
         // For that, simply restrict the list of scopes before calling SetScopes.
@@ -424,6 +434,7 @@ public class ConnectController(
         var idTokenClaims = requestedScopes
             .Where(x => x.Properties.TargetToken.Contains(Destinations.IdentityToken))
             .SelectMany(x => x.Properties.RequestedClaimTypes)
+            .Concat(_remoteClaimTypes)
             .ToHashSet();
 
         var authorizationId = await _authorizationManager.GetIdAsync(authorization, ct);

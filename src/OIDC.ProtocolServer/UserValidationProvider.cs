@@ -3,6 +3,8 @@ using System.Security.Claims;
 
 using JGUZDV.ActiveDirectory.ClaimProvider;
 
+using OpenIddict.Abstractions;
+
 namespace JGUZDV.OIDC.ProtocolServer
 {
     public class UserValidationProvider
@@ -19,7 +21,7 @@ namespace JGUZDV.OIDC.ProtocolServer
         
         public DateTimeOffset? LastPasswordChange(ClaimsPrincipal claimsPrincipal)
         {
-            var lastChange = _adClaimProvider.GetClaims(claimsPrincipal, new[] { "pwdLastChanged" });
+            var lastChange = _adClaimProvider.GetClaims(claimsPrincipal, new[] { "pwd_changed" });
             return DateTimeOffset.TryParse(lastChange.FirstOrDefault().Value, out var lastChangeDatetime)
                 ? lastChangeDatetime
                 : null;

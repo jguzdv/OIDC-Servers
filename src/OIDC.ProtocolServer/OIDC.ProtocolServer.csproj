@@ -26,8 +26,13 @@
         <PackageReference Include="OpenIddict.AspNetCore" Version="5.5.0" />
         <PackageReference Include="OpenIdDict.EntityFrameworkCore" Version="5.5.0" />
 
-        <PackageReference Include="JGUZDV.ActiveDirectory.ClaimProvider" Version="1.0.0-beta3" />
+        <!-- <PackageReference Include="JGUZDV.ActiveDirectory.ClaimProvider" Version="1.0.0-beta3" /> -->
         <PackageReference Include="JGUZDV.OpenIddict.KeyManager" Version="1.0.0-beta" />
         <PackageReference Include="JGUZDV.AspNetCore.Authentication.Cookies" Version="1.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\..\GitHub-Nuget-Packages\libraries\JGUZDV.ActiveDirectory.ClaimProvider\src\JGUZDV.ActiveDirectory.ClaimProvider.csproj" />
+      <ProjectReference Include="..\..\..\GitHub-Nuget-Packages\libraries\JGUZDV.ActiveDirectory\src\JGUZDV.ActiveDirectory.csproj" />
     </ItemGroup>
 </Project>
