@@ -7,7 +7,9 @@
       "_launchUrl": "https://localhost:6001/self",
       "applicationUrl": "https://localhost:6001;http://localhost:6000",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "JGUZDV__DataProtection__UsePersistence": "false",
+        "JGUZDV__DataProtection__UseProtection": "false"
       }
     }
   }

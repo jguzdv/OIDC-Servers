@@ -6,12 +6,21 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>JGUZDV.OIDC.ProtocolServer</RootNamespace>
         <UserSecretsId>47a7c02d-e893-4ff7-b122-535e7117d6f9</UserSecretsId>
+        <SelfContained>false</SelfContained>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
 
         <NoWarn>$(NoWarn);CA1416</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="JGUZDV.AspNetCore.Authentication.Cookies" Version="1.0.0" />
+        <PackageReference Include="JGUZDV.AspNetCore.DataProtection" Version="1.1.1" />
+        <PackageReference Include="JGUZDV.AspNetCore.Logging" Version="1.0.8" />
+        <!-- <PackageReference Include="JGUZDV.ActiveDirectory.ClaimProvider" Version="1.0.0-beta3" /> -->
+        <!--<PackageReference Include="JGUZDV.OpenIddict.KeyManager" Version="1.0.0-beta" />-->
+        
         <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.4" />
+        <PackageReference Include="Microsoft.Extensions.Caching.SqlServer" Version="8.0.4" />
         <!--
             There seems to be a bug, when Microsoft.IdentityModel.Protocols.OpenIdConnect 7.2.1 (as used in MAA.OIDC)
             is used with Microsoft.IdentityModel.Protocols 7.4.1 (as used in OpenIddict.AspNetCore), so we force the 
@@ -23,15 +32,17 @@
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
         <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.4" />
+        
         <PackageReference Include="OpenIddict.AspNetCore" Version="5.5.0" />
         <PackageReference Include="OpenIdDict.EntityFrameworkCore" Version="5.5.0" />
-
-        <!-- <PackageReference Include="JGUZDV.ActiveDirectory.ClaimProvider" Version="1.0.0-beta3" /> -->
-        <PackageReference Include="JGUZDV.OpenIddict.KeyManager" Version="1.0.0-beta" />
-        <PackageReference Include="JGUZDV.AspNetCore.Authentication.Cookies" Version="1.0.0" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\..\..\GitHub-Nuget-Packages\libraries\JGUZDV.ActiveDirectory\src\JGUZDV.ActiveDirectory.csproj" />
+      <ProjectReference Include="..\..\..\GitHub-Nuget-Packages\libraries\JGUZDV.OpenIddict.KeyManager\src\JGUZDV.OpenIddict.KeyManager.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
     </ItemGroup>
 </Project>

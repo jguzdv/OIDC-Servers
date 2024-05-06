@@ -3,7 +3,7 @@ using System.Text.Json;
 
 using JGUZDV.ActiveDirectory;
 using JGUZDV.ActiveDirectory.Configuration;
-using JGUZDV.OIDC.ProtocolServer;
+using JGUZDV.AspNetCore.DataProtection;
 using JGUZDV.OIDC.ProtocolServer.ActiveDirectory;
 using JGUZDV.OIDC.ProtocolServer.Authentication;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
@@ -13,12 +13,14 @@ using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
 
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
 
 using OpenIddict.Abstractions;
 
+using Constants = JGUZDV.OIDC.ProtocolServer.Constants;
 using OpenIddictConstants = OpenIddict.Abstractions.OpenIddictConstants;
 
 IdentityModelEventSource.ShowPII = true;
@@ -46,12 +48,21 @@ services.AddDbContext<ApplicationDbContext>(options =>
 
 if (builder.Environment.IsDevelopment())
 {
+    services.AddDataProtection();
     services.AddDistributedMemoryCache();
 }
 else
 {
-    // TODO: Add DistributedCache here.
-    throw new NotImplementedException();
+
+    services.AddDataProtection()
+        .UseDataProtectionConfig(
+            builder.Configuration.GetSection(JGUZDV.AspNetCore.DataProtection.Constants.DefaultSectionName),
+            builder.Environment)
+        // TODO: This needs to be set, so exisiting keys can be reused
+        // und es scheint nicht dieser zu sein, der verwendet wurde ....
+        .SetApplicationName("OpenId-Server");
+
+    services.AddDistributedSqlServerCache(opt => builder.Configuration.GetSection("DistributedCache").Bind(opt));
 }
 
 services.AddSingleton<CustomOpenIdConnectEvents>();
@@ -150,11 +161,13 @@ services.AddOpenIddict()
         options.UseAspNetCore();
     });
 
-services.AddAutomaticKeyRollover(conf =>
-{
-    conf.KeyStorePath = "D:\\Temp\\OIDC-KeyStorePath";
-    conf.DisableKeyGeneration = false;
-});
+services.AddAutomaticKeyRollover(
+    OpenIddictKeyManagerExtensions.KeyType.RSA,
+    conf =>
+    {
+        conf.KeyStorePath = builder.Configuration["KeyStoreagePath"];
+        conf.DisableKeyGeneration = false;
+    });
 
 services
     .AddOptions<ProtocolServerOptions>()
