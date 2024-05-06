@@ -1,18 +1,16 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using System.Text.Json;
 
-using JGUZDV.ActiveDirectory.ClaimProvider.Configuration;
+using JGUZDV.ActiveDirectory;
 using JGUZDV.ActiveDirectory.Configuration;
 using JGUZDV.OIDC.ProtocolServer;
+using JGUZDV.OIDC.ProtocolServer.ActiveDirectory;
 using JGUZDV.OIDC.ProtocolServer.Authentication;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
 using JGUZDV.OIDC.ProtocolServer.Data;
-using JGUZDV.OIDC.ProtocolServer.Extensions;
 using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
 
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +18,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
 
 using OpenIddict.Abstractions;
+
 using OpenIddictConstants = OpenIddict.Abstractions.OpenIddictConstants;
 
 IdentityModelEventSource.ShowPII = true;
@@ -163,33 +162,43 @@ services
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-services.AddOptions<ActiveDirectoryOptions>()
-    .BindConfiguration("ActiveDirectory")
-    .PostConfigure<IOptions<ProtocolServerOptions>>((adOptions, serverOptions) =>
+services.AddSingleton<DirectoryEntryProvider>();
+services.AddPropertyReader();
+services.AddClaimProvider();
+
+services.AddOptions<PropertyReaderOptions>()
+    .PostConfigure<IOptions<ProtocolServerOptions>>((readerOptions, serverOptions) =>
     {
-        adOptions.UserClaimType = serverOptions.Value.UserClaimType;
+        foreach (var prop in serverOptions.Value.Properties)
+        {
+            readerOptions.PropertyInfos.Add(
+                prop.Key, 
+                new(
+                    prop.Key, 
+                    prop.Value switch
+                    {
+                        "int" => typeof(int),
+                        "long" => typeof(long),
+                        "DateTime" => typeof(DateTime),
+                        "byte[]" => typeof(byte[]),
+                        _ => typeof(string)
+                    }
+                )
+            );
+        }
+    });
 
-        foreach (var conv in serverOptions.Value.Properties)
-            adOptions.Properties.Add(new ADPropertyInfo(conv.Key, conv.Value switch
-            {
-                "int" => typeof(int),
-                "long" => typeof(long),
-                "DateTime" => typeof(DateTime),
-                "byte[]" => typeof(byte[]),
-                _ => typeof(string)
-            }));
-
+services.AddOptions<ClaimProviderOptions>()
+    .PostConfigure<IOptions<ProtocolServerOptions>>((cpOptions, serverOptions) =>
+    {
         foreach (var src in serverOptions.Value.ClaimSources)
         {
-            adOptions.ClaimSources.RemoveAll(c => c.ClaimType.Equals(src.ClaimType, StringComparison.OrdinalIgnoreCase));
-            adOptions.ClaimSources.Add(src);
+            cpOptions.ClaimSources.RemoveAll(c => c.ClaimType.Equals(src.ClaimType, StringComparison.OrdinalIgnoreCase));
+            cpOptions.ClaimSources.Add(src);
         }
-    })
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
+    });
 
 services
-    .AddActiveDirectoryClaimProvider()
     .AddClaimProvider<ActiveDirectoryClaimProviderFacade>()
     .AddScoped<UserValidationProvider>();
 

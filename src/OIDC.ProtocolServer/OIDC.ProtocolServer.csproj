@@ -32,7 +32,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\..\GitHub-Nuget-Packages\libraries\JGUZDV.ActiveDirectory.ClaimProvider\src\JGUZDV.ActiveDirectory.ClaimProvider.csproj" />
       <ProjectReference Include="..\..\..\GitHub-Nuget-Packages\libraries\JGUZDV.ActiveDirectory\src\JGUZDV.ActiveDirectory.csproj" />
     </ItemGroup>
 </Project>

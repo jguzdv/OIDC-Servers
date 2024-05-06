@@ -1,26 +1,29 @@
-﻿using JGUZDV.ActiveDirectory.ClaimProvider;
-using JGUZDV.ActiveDirectory.ClaimProvider.Configuration;
-using Microsoft.Extensions.Options;
-using System.Security.Claims;
+﻿using System.Security.Claims;
+
+using JGUZDV.OIDC.ProtocolServer.ActiveDirectory;
 
 namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 
 public class ActiveDirectoryClaimProviderFacade : IClaimProvider
 {
-    private readonly ADClaimProvider _provider;
-    private readonly IOptions<ActiveDirectoryOptions> _options;
+    private readonly DirectoryEntryProvider _directoryEntryProvider;
+    private readonly JGUZDV.ActiveDirectory.Claims.IClaimProvider _provider;
 
-    public ActiveDirectoryClaimProviderFacade(ADClaimProvider provider, IOptions<ActiveDirectoryOptions> options)
+    public ActiveDirectoryClaimProviderFacade(
+        DirectoryEntryProvider directoryEntryProvider,
+        JGUZDV.ActiveDirectory.Claims.IClaimProvider provider)
     {
+        _directoryEntryProvider = directoryEntryProvider;
         _provider = provider;
-        _options = options;
     }
 
     public bool CanProvideAnyOf(IEnumerable<string> claimTypes) =>
-        _options.Value.ClaimSources.Select(x => x.ClaimType)
-            .Intersect(claimTypes, StringComparer.OrdinalIgnoreCase)
-            .Any();
+        _provider.GetProvidedClaimTypes(claimTypes.ToArray()).Any();
 
-    public Task<List<(string Type, string Value)>> GetClaimsAsync(ClaimsPrincipal currentUser, IEnumerable<string> claimTypes, CancellationToken ct)
-        =>Task.FromResult(_provider.GetClaims(currentUser, claimTypes.ToArray()));
+    public Task<List<(string Type, string Value)>> GetClaimsAsync(ClaimsPrincipal subject, IEnumerable<string> claimTypes, CancellationToken ct)
+    {
+        var userEntry = _directoryEntryProvider.GetUserEntryFromPrincipal(subject);
+        var result = _provider.GetClaims(userEntry, claimTypes.ToArray());
+        return Task.FromResult(result.ToList());
+    }
 }

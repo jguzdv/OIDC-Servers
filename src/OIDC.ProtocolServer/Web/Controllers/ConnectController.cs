@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Security.Claims;
 
+using JGUZDV.OIDC.ProtocolServer.ActiveDirectory;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
 using JGUZDV.OIDC.ProtocolServer.Data;
