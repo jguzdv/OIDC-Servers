@@ -5,41 +5,66 @@ using Microsoft.Extensions.Logging;
 
 using OIDC.Migration.IdentityServer2OpenIDDict;
 
-var builder = Host.CreateDefaultBuilder(args);
-builder.ConfigureLogging(logging =>
+
+var commands = new[] { "data", "keys" };
+
+if (args.Length == 0 || !commands.Contains(args[0]))
 {
-    logging.SetMinimumLevel(LogLevel.Information);
-    logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Error);
-    logging.AddFilter("OIDC.Migration.IdentityServer2OpenIDDict", LogLevel.Debug);
-});
+    Console.WriteLine($"Known commands are {string.Join(", ", commands)}");
+}
 
-builder.ConfigureServices(services =>
+IHostBuilder builder = CreateHost();
+
+if (args[0] == "data")
 {
-    services.AddHostedService<MigrationWorker>();
 
-    services.AddIdentityServer()
-        .AddConfigurationStore(
-            store =>
-            {
-                store.ConfigureDbContext = context => context.UseSqlServer(args[0]);
-            }
-        );
-
-    services.AddDbContext<OpenIddictDbContext>(options =>
+    builder.ConfigureServices(services =>
     {
-        options.UseSqlServer(args[1]);
-        options.UseOpenIddict();
-    });
+        services.AddHostedService<DataMigrationWorker>();
 
-    services.AddOpenIddict(opt =>
-    {
-        opt.AddCore(core =>
+        services.AddIdentityServer()
+            .AddConfigurationStore(
+                store =>
+                {
+                    store.ConfigureDbContext = context => context.UseSqlServer(args[1]);
+                }
+            );
+
+        services.AddDbContext<OpenIddictDbContext>(options =>
         {
-            core.UseEntityFrameworkCore()
-                .UseDbContext<OpenIddictDbContext>();
+            options.UseSqlServer(args[2]);
+            options.UseOpenIddict();
+        });
+
+        services.AddOpenIddict(opt =>
+        {
+            opt.AddCore(core =>
+            {
+                core.UseEntityFrameworkCore()
+                    .UseDbContext<OpenIddictDbContext>();
+            });
         });
     });
-});
+}
+
+if (args[0] == "keys")
+{
+
+}
+
 
 var host = builder.Build();
 await host.RunAsync();
+
+
+static IHostBuilder CreateHost()
+{
+    var builder = Host.CreateDefaultBuilder();
+    builder.ConfigureLogging(logging =>
+    {
+        logging.SetMinimumLevel(LogLevel.Information);
+        logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Error);
+        logging.AddFilter("OIDC.Migration.IdentityServer2OpenIDDict", LogLevel.Debug);
+    });
+    return builder;
+}

@@ -12,7 +12,7 @@ using OpenIddict.Abstractions;
 
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
-internal class MigrationWorker : IHostedService
+internal class DataMigrationWorker : IHostedService
 {
     private readonly IdentityServer4.EntityFramework.DbContexts.ConfigurationDbContext _srcContext;
     private readonly IdentityServer4.Stores.IClientStore _clientStore;
@@ -20,16 +20,16 @@ internal class MigrationWorker : IHostedService
     private readonly IOpenIddictApplicationManager _applicationManager;
     private readonly IOpenIddictScopeManager _scopeManager;
     private readonly IHostApplicationLifetime _hostApplicationLifetime;
-    private readonly ILogger<MigrationWorker> _logger;
+    private readonly ILogger<DataMigrationWorker> _logger;
 
-    public MigrationWorker(
+    public DataMigrationWorker(
         IdentityServer4.EntityFramework.DbContexts.ConfigurationDbContext srcContext,
         IdentityServer4.Stores.IClientStore clientStore,
         IdentityServer4.Stores.IResourceStore resourceStore,
         IOpenIddictApplicationManager applicationManager,
         IOpenIddictScopeManager scopeManager,
         IHostApplicationLifetime hostApplicationLifetime,
-        ILogger<MigrationWorker> logger
+        ILogger<DataMigrationWorker> logger
     )
     {
         _srcContext = srcContext;
