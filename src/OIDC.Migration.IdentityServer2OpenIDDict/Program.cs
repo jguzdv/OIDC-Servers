@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -49,7 +50,23 @@ if (args[0] == "data")
 
 if (args[0] == "keys")
 {
+    builder.ConfigureServices(services =>
+    {
+        services.AddHostedService<KeyMigrationWorker>();
 
+        services.AddDataProtection()
+            .SetApplicationName("C:\\inetpub\\sites\\openid.uni-mainz.de")
+            .PersistKeysToFileSystem(new DirectoryInfo(args[1]))
+            .ProtectKeysWithDpapiNG()
+            .DisableAutomaticKeyGeneration();
+
+        services.Configure<KeyMigrationWorker.Options>(config =>
+        {
+            config.KeyPath = args[2];
+            config.CertificatePath = args[3];
+            config.CertificatePassword = args[4];
+        });
+    });
 }
 
 
@@ -62,7 +79,8 @@ static IHostBuilder CreateHost()
     var builder = Host.CreateDefaultBuilder();
     builder.ConfigureLogging(logging =>
     {
-        logging.SetMinimumLevel(LogLevel.Information);
+        logging.SetMinimumLevel(LogLevel.Debug);
+        logging.AddFilter("Microsoft.AspNetCore.DataProtection.KeyManagement", LogLevel.Error);
         logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Error);
         logging.AddFilter("OIDC.Migration.IdentityServer2OpenIDDict", LogLevel.Debug);
     });
