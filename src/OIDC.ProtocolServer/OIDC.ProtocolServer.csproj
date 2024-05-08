@@ -17,9 +17,11 @@
         <PackageReference Include="JGUZDV.AspNetCore.DataProtection" Version="1.1.1" />
         <PackageReference Include="JGUZDV.AspNetCore.Logging" Version="1.0.8" />
         <!-- <PackageReference Include="JGUZDV.ActiveDirectory.ClaimProvider" Version="1.0.0-beta3" /> -->
-        <!--<PackageReference Include="JGUZDV.OpenIddict.KeyManager" Version="1.0.0-beta" />-->
+        <!-- <PackageReference Include="JGUZDV.OpenIddict.KeyManager" Version="1.0.0-beta" /> -->
         
         <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.4" />
+        
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="8.0.4" />
         <PackageReference Include="Microsoft.Extensions.Caching.SqlServer" Version="8.0.4" />
         <!--
             There seems to be a bug, when Microsoft.IdentityModel.Protocols.OpenIdConnect 7.2.1 (as used in MAA.OIDC)

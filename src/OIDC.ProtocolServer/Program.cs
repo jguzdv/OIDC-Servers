@@ -3,13 +3,13 @@ using System.Text.Json;
 
 using JGUZDV.ActiveDirectory;
 using JGUZDV.ActiveDirectory.Configuration;
-using JGUZDV.AspNetCore.DataProtection;
 using JGUZDV.OIDC.ProtocolServer.ActiveDirectory;
 using JGUZDV.OIDC.ProtocolServer.Authentication;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
 using JGUZDV.OIDC.ProtocolServer.Data;
 using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
+using JGUZDV.OpenIddict.KeyManager.Configuration;
 
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -53,15 +53,7 @@ if (builder.Environment.IsDevelopment())
 }
 else
 {
-
-    services.AddDataProtection()
-        .UseDataProtectionConfig(
-            builder.Configuration.GetSection(JGUZDV.AspNetCore.DataProtection.Constants.DefaultSectionName),
-            builder.Environment)
-        // TODO: This needs to be set, so exisiting keys can be reused
-        // und es scheint nicht dieser zu sein, der verwendet wurde ....
-        .SetApplicationName("OpenId-Server");
-
+    builder.AddJGUZDVDataProtection();
     services.AddDistributedSqlServerCache(opt => builder.Configuration.GetSection("DistributedCache").Bind(opt));
 }
 
@@ -129,7 +121,6 @@ services.AddOpenIddict()
             .AllowDeviceCodeFlow()
             .AllowRefreshTokenFlow();
 
-
         //if (builder.Environment.IsDevelopment())
         //{
         //    options
@@ -151,7 +142,6 @@ services.AddOpenIddict()
             .EnableTokenEndpointPassthrough()
             .EnableUserinfoEndpointPassthrough()
             .EnableVerificationEndpointPassthrough();
-
     })
     // Register the OpenIddict validation components.
     .AddValidation(options =>
@@ -162,12 +152,17 @@ services.AddOpenIddict()
     });
 
 services.AddAutomaticKeyRollover(
-    OpenIddictKeyManagerExtensions.KeyType.RSA,
+    OpenIddictKeyManagerExtensions.KeyType.X509,
     conf =>
     {
         conf.KeyStorePath = builder.Configuration["KeyStoreagePath"];
         conf.DisableKeyGeneration = false;
     });
+
+services.Configure<X509Options>(conf =>
+{
+    conf.CertificatePassword = builder.Configuration["CertificatePassword"];
+});
 
 services
     .AddOptions<ProtocolServerOptions>()
@@ -241,12 +236,12 @@ app.MapControllers();
 
 
 #if DEBUG
-app.MapGet("/test", async (IOptionsSnapshot<OpenIdConnectOptions> opt, CancellationToken ct) =>
+app.MapGet("/test", async (IOptions<DataProtectionOptions> opt) =>
 {
-    var options = opt.Get(OpenIdConnectDefaults.AuthenticationScheme);
-    var config = await options.ConfigurationManager.GetConfigurationAsync(ct);
+    var thing = opt.Value.ApplicationDiscriminator;
+    //var thing = discriminator.Discriminator;
 
-    return JsonSerializer.Serialize(config);
+    return JsonSerializer.Serialize(thing);
 });
 
 await Startup.InitializeSamples(app);
