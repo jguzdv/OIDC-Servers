@@ -1,5 +1,7 @@
-﻿using System.Security.Cryptography;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 using Microsoft.Extensions.Options;
 
@@ -32,6 +34,44 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
             }
 
             return result;
+        }
+
+        public override async ValueTask<bool> ValidateRedirectUriAsync(OpenIddictEntityFrameworkCoreApplication application, [StringSyntax("Uri")] string uri, CancellationToken cancellationToken = default)
+        {
+            //TODO: Valdiate URLs with placeholder values, that originally have been Regexes
+            if (await base.ValidateRedirectUriAsync(application, uri, cancellationToken))
+            {
+                return true;
+            }
+
+            var redirectUris = await Store.GetRedirectUrisAsync(application, cancellationToken);
+            return ValidateRegexRedirectUri(redirectUris, uri, cancellationToken);
+        }
+
+        public override async ValueTask<bool> ValidatePostLogoutRedirectUriAsync(OpenIddictEntityFrameworkCoreApplication application, [StringSyntax("Uri")] string uri, CancellationToken cancellationToken = default)
+        {
+            if (await base.ValidatePostLogoutRedirectUriAsync(application, uri, cancellationToken))
+            {
+                return true;
+            }
+
+            var redirectUris = await Store.GetPostLogoutRedirectUrisAsync(application, cancellationToken);
+            return ValidateRegexRedirectUri(redirectUris, uri, cancellationToken);
+        }
+
+        private static bool ValidateRegexRedirectUri(ICollection<string> redirectUris, string uri, CancellationToken cancellationToken = default)
+        {
+            foreach (var redirectUri in redirectUris.Where(x => x.Contains("__")))
+            {
+                var regex = new Regex($"^{redirectUri.Replace("__", "[\\w\\d]*")}$", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(250));
+
+                if (Regex.IsMatch(uri, redirectUri))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }
