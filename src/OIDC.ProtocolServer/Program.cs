@@ -27,6 +27,8 @@ IdentityModelEventSource.ShowPII = true;
 JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.UseJGUZDVLogging();
+
 var services = builder.Services;
 services.AddTransient(sp => TimeProvider.System);
 services.AddSingleton(sp => (IConfigurationRoot)sp.GetRequiredService<IConfiguration>());
@@ -114,7 +116,7 @@ services.AddOpenIddict()
             .SetTokenEndpointUris("connect/token")
             .SetUserinfoEndpointUris("connect/userinfo")
             .SetVerificationEndpointUris("connect/verify")
-            .SetLogoutEndpointUris("connect/logout");
+            .SetLogoutEndpointUris("connect/endsession");
 
         options
             .AllowAuthorizationCodeFlow()

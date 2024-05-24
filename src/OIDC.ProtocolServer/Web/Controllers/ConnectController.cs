@@ -25,13 +25,11 @@ using Claim = System.Security.Claims.Claim;
 namespace JGUZDV.OIDC.ProtocolServer.Web.Controllers;
 
 public class ConnectController(
-    IOpenIddictApplicationManager applicationManager,
     IOpenIddictAuthorizationManager authorizationManager,
     IOpenIddictScopeManager scopeManager,
     TimeProvider timeProvider,
     IOptions<ProtocolServerOptions> options) : Controller
 {
-    private readonly IOpenIddictApplicationManager _applicationManager = applicationManager;
     private readonly IOpenIddictAuthorizationManager _authorizationManager = authorizationManager;
     private readonly IOpenIddictScopeManager _scopeManager = scopeManager;
     private readonly TimeProvider _timeProvider = timeProvider;
@@ -47,13 +45,14 @@ public class ConnectController(
     [HttpPost("~/connect/authorize")]
     [IgnoreAntiforgeryToken]
     public async Task<IActionResult> Authorize(
-        [FromServices]IEnumerable<IClaimProvider> claimProviders,
+        [FromServices] IOpenIddictApplicationManager applicationManager,
+        [FromServices] IEnumerable<IClaimProvider> claimProviders,
         CancellationToken ct)
     {
         var oidcRequest = HttpContext.GetOpenIddictServerRequest() ??
             throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
-        var application = await ApplicationModel.FromClientIdAsync(_applicationManager, oidcRequest.ClientId!, ct);
+        var application = await ApplicationModel.FromClientIdAsync(applicationManager, oidcRequest.ClientId!, ct);
         var scopes = await ScopeModel.FromScopeNamesAsync(_scopeManager, oidcRequest.GetScopes(), ct);
         
         if ((await CheckIfChallengeIsNeededAsync(oidcRequest, application, scopes)) is IActionResult challengeResult)
@@ -153,12 +152,12 @@ public class ConnectController(
             userClaims.AddRange(claims);
         }
 
-        foreach (var claimType in userClaims.GroupBy(x => x.Type))
+        foreach (var claimTypeClaims in userClaims.GroupBy(x => x.Type))
         {
-            if (claimType.Count() > 1)
-                identity.SetClaim(claimType.Key, claimType.First().Value);
+            if (claimTypeClaims.Count() == 1)
+                identity.SetClaim(claimTypeClaims.Key, claimTypeClaims.First().Value);
             else
-                identity.SetClaims(claimType.Key, claimType.Select(x => x.Value).ToImmutableArray());
+                identity.SetClaims(claimTypeClaims.Key, claimTypeClaims.Select(x => x.Value).ToImmutableArray());
         }
 
         identity.SetDestinations(x => GetDestinations(x, idClaims));
