@@ -1,10 +1,14 @@
 ﻿using System.DirectoryServices;
 using System.Security.Claims;
+using System.Security.Principal;
 
 using JGUZDV.ActiveDirectory;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
 
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+
+using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace JGUZDV.OIDC.ProtocolServer.ActiveDirectory
 {
@@ -24,13 +28,23 @@ namespace JGUZDV.OIDC.ProtocolServer.ActiveDirectory
         public DirectoryEntry GetUserEntryFromPrincipal(ClaimsPrincipal principal, params string[] propertiesToLoad)
         {
             var userSid = principal.FindFirstValue(_options.Value.UserClaimType);
-            if (string.IsNullOrEmpty(userSid))
+            var userSub = principal.FindFirstValue(Claims.Subject);
+            if (string.IsNullOrEmpty(userSid) && string.IsNullOrEmpty(userSub))
             {
-                throw new InvalidOperationException("No sid claim found in principal");
+                throw new InvalidOperationException("No subject or sid claim found in principal.");
             }
 
-            var entry = UserEntryHelper.BindDirectoryEntry(_options.Value.LdapServer, $"<Sid={userSid}>", propertiesToLoad);
-            return entry;
+            if (!string.IsNullOrEmpty(userSid) && userSid.StartsWith("S-"))
+            {
+                return UserEntryHelper.BindDirectoryEntry(_options.Value.LdapServer, $"<Sid={userSid}>", propertiesToLoad);
+            }
+
+            if (!string.IsNullOrEmpty(userSub) && Guid.TryParse(userSub, out var userObjectGuid))
+            {
+                return UserEntryHelper.BindDirectoryEntry(_options.Value.LdapServer, $"<GUID={userObjectGuid}>", propertiesToLoad);
+            }
+
+            throw new InvalidOperationException("No valid subject or sid claim found in principal.");
         }
     }
 }
