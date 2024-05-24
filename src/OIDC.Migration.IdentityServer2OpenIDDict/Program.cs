@@ -79,10 +79,10 @@ static IHostBuilder CreateHost()
     var builder = Host.CreateDefaultBuilder();
     builder.ConfigureLogging(logging =>
     {
-        logging.SetMinimumLevel(LogLevel.Debug);
+        logging.SetMinimumLevel(LogLevel.Information);
         logging.AddFilter("Microsoft.AspNetCore.DataProtection.KeyManagement", LogLevel.Error);
-        logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Error);
-        logging.AddFilter("OIDC.Migration.IdentityServer2OpenIDDict", LogLevel.Debug);
+        logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Error);
+        logging.AddFilter("OIDC.Migration.IdentityServer2OpenIDDict", LogLevel.Information);
     });
     return builder;
 }

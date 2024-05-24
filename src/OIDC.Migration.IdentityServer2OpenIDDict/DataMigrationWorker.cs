@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using System.Linq;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 
 using IdentityServer4.Stores;
 
@@ -64,9 +66,14 @@ internal class DataMigrationWorker : IHostedService
 
     private async Task MigrateScopes(CancellationToken ct)
     {
-        var resources = await _resourceStore.GetAllEnabledResourcesAsync();
+        var allRessources = await _resourceStore.GetAllResourcesAsync();
 
-        foreach(var scope in resources.IdentityResources)
+        var resources = new List<IdentityServer4.Models.Resource>();
+        resources.AddRange(allRessources.IdentityResources);
+        resources.AddRange(allRessources.ApiResources);
+        resources.AddRange(allRessources.ApiScopes);
+
+        foreach (var scope in resources)
         {
             var targetScope = await _scopeManager.FindByNameAsync(scope.Name, ct);
             var scopeDescriptor = CreateScopeDescriptor(scope);
@@ -96,12 +103,18 @@ internal class DataMigrationWorker : IHostedService
             Description = srcScope.Description
         };
 
+
         var props = new ScopeProperties()
         {
             RequestedClaimTypes = new(srcScope.UserClaims),
         };
 
-        if(srcScope is IdentityServer4.Models.IdentityResource)
+        if (srcScope is IdentityServer4.Models.ApiResource apiResource)
+        {
+            descriptor.Resources.Add(apiResource.Name);
+        }
+
+        if (srcScope is IdentityServer4.Models.IdentityResource)
         {
             props.TargetToken = new() { Destinations.IdentityToken };
         }
@@ -172,8 +185,8 @@ internal class DataMigrationWorker : IHostedService
                 }
             };
 
-            descriptor.RedirectUris.UnionWith(srcClient.RedirectUris.Select(x => new Uri(x)));
-            descriptor.PostLogoutRedirectUris.UnionWith(srcClient.PostLogoutRedirectUris.Select(x => new Uri(x)));
+            descriptor.RedirectUris.UnionWith(CreateUris(srcClient.RedirectUris));
+            descriptor.PostLogoutRedirectUris.UnionWith(CreateUris(srcClient.PostLogoutRedirectUris));
 
             foreach (var grantType in srcClient.AllowedGrantTypes)
             {
@@ -254,13 +267,47 @@ internal class DataMigrationWorker : IHostedService
         {
             _logger.LogError(ex, "Could not create OpenIddict Client");
 
-            var jsonClient = JsonSerializer.Serialize(srcClient, new JsonSerializerOptions(JsonSerializerDefaults.General)
-            {
-                WriteIndented = true
-            });
+            var jsonClient = JsonSerializer.Serialize(srcClient, 
+                new JsonSerializerOptions(JsonSerializerDefaults.General)
+                {
+                    WriteIndented = true
+                }
+            );
             _logger.LogInformation(jsonClient);
 
             return null;
         }
+    }
+
+    private IEnumerable<Uri> CreateUris(ICollection<string> redirectUris)
+    {
+        var result = new List<Uri>();
+
+        foreach (var uri in redirectUris.Where(x => x != "https:///signin-oidc"))
+        {
+            var replacedUri = ReplaceRegex(uri);
+            try
+            {
+                result.Add(new Uri(replacedUri));
+            }
+            catch
+            {
+                _logger.LogError("The URI {uri} ({replacedUri}) could not be used.", uri, replacedUri);
+            }
+        }
+
+        return result;
+    }
+
+    private string ReplaceRegex(string potentialRegexUri)
+    {
+        return potentialRegexUri
+            .Replace("^", "")
+            .Replace("$", "")
+            .Replace("[\\d\\w\\.-]*\\.", "__.")
+            .Replace("[\\d\\w\\.-]*.", "__.")
+            .Replace("[\\d\\w\\.-]*", "__.")
+            .Replace("[\\w\\d]+.", "__.")
+            .Replace("\\.", ".");
     }
 }
