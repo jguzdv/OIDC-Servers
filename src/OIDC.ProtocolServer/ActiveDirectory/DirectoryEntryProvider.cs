@@ -27,24 +27,20 @@ namespace JGUZDV.OIDC.ProtocolServer.ActiveDirectory
 
         public DirectoryEntry GetUserEntryFromPrincipal(ClaimsPrincipal principal, params string[] propertiesToLoad)
         {
-            var userSid = principal.FindFirstValue(_options.Value.UserClaimType);
-            var userSub = principal.FindFirstValue(Claims.Subject);
-            if (string.IsNullOrEmpty(userSid) && string.IsNullOrEmpty(userSub))
+            var userIdentifier = principal.FindFirstValue(_options.Value.UserClaimType) ?? principal.FindFirstValue(Claims.Subject);
+
+            if (string.IsNullOrEmpty(userIdentifier))
             {
-                throw new InvalidOperationException("No subject or sid claim found in principal.");
+                throw new InvalidOperationException($"No subject or {_options.Value.UserClaimType} claim found in principal.");
             }
 
-            if (!string.IsNullOrEmpty(userSid) && userSid.StartsWith("S-"))
+            var (isBindable, bindPath) = UserEntryHelper.IsBindableIdentity(userIdentifier);
+            if (!isBindable)
             {
-                return UserEntryHelper.BindDirectoryEntry(_options.Value.LdapServer, $"<Sid={userSid}>", propertiesToLoad);
+                throw new InvalidOperationException("No valid subject or sid claim found in principal.");
             }
 
-            if (!string.IsNullOrEmpty(userSub) && Guid.TryParse(userSub, out var userObjectGuid))
-            {
-                return UserEntryHelper.BindDirectoryEntry(_options.Value.LdapServer, $"<GUID={userObjectGuid}>", propertiesToLoad);
-            }
-
-            throw new InvalidOperationException("No valid subject or sid claim found in principal.");
+            return UserEntryHelper.BindDirectoryEntry(_options.Value.LdapServer, bindPath!, propertiesToLoad);
         }
     }
 }
