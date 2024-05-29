@@ -27,6 +27,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JGUZDV.ActiveDirectory", ".
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JGUZDV.OpenIddict.KeyManager", "..\GitHub-Nuget-Packages\libraries\JGUZDV.OpenIddict.KeyManager\src\JGUZDV.OpenIddict.KeyManager.csproj", "{1CBEDEFA-9DE9-4E25-A0DA-6AFD0E628229}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OIDC.Tools.ConfigUI", "src\OIDC.Tools.ConfigUI\OIDC.Tools.ConfigUI.csproj", "{4754FA42-04AB-4089-B5F1-48F673D417F5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,6 +59,10 @@ Global
 		{1CBEDEFA-9DE9-4E25-A0DA-6AFD0E628229}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1CBEDEFA-9DE9-4E25-A0DA-6AFD0E628229}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1CBEDEFA-9DE9-4E25-A0DA-6AFD0E628229}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4754FA42-04AB-4089-B5F1-48F673D417F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4754FA42-04AB-4089-B5F1-48F673D417F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4754FA42-04AB-4089-B5F1-48F673D417F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4754FA42-04AB-4089-B5F1-48F673D417F5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -68,6 +74,7 @@ Global
 		{431E71C2-AD69-4E46-9CE3-FD7E26837CDE} = {9D9E1093-74C3-44F3-B368-EE5062508CF6}
 		{A20B35B2-2B03-4EBC-8029-33E4E50FE0F8} = {9D9E1093-74C3-44F3-B368-EE5062508CF6}
 		{1CBEDEFA-9DE9-4E25-A0DA-6AFD0E628229} = {9D9E1093-74C3-44F3-B368-EE5062508CF6}
+		{4754FA42-04AB-4089-B5F1-48F673D417F5} = {9D9E1093-74C3-44F3-B368-EE5062508CF6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {07A44CDC-6E0B-4FD0-97BA-453B23FED63F}
