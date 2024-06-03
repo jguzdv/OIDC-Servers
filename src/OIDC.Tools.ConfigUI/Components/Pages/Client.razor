@@ -1,0 +1,59 @@
+@page "/clients/{clientId}"
+@using OpenIddict.Abstractions
+
+@inject IOpenIddictApplicationManager _applicationManager
+
+@if(_client != null)
+{
+    <div class="card">
+        <div class="card-header">
+            <h2>@ApplicationDescriptor.DisplayName</h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-lg-6">
+                    <div>
+                        <label for="client-id">Client ID</label>
+                        <input type="text" id="client-id" class="form-control" @bind-value="@ApplicationDescriptor.ClientId" />
+                    </div>
+                    <div>
+                        <label for="client-name">Client Name</label>
+                        <input type="text" id="client-name" class="form-control" @bind-value="@ApplicationDescriptor.DisplayName" />
+                    </div>
+                    
+                </div>
+                <div class="col-lg-6">
+
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <p>Loading... (ActiviteIndicator)</p>
+}
+
+@code {
+    [Parameter]
+    public string ClientId { get; set; }
+
+    private object? _client;
+    private OpenIddictApplicationDescriptor ApplicationDescriptor { get; } = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        // Load the client details
+        _client = await _applicationManager.FindByClientIdAsync(ClientId);
+        if (_client == null)
+        {
+            // TODO: Add toasts and use it here
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        await _applicationManager.PopulateAsync(ApplicationDescriptor, _client);
+    }
+}

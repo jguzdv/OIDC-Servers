@@ -3,7 +3,7 @@
     "Windows Machine": {
       "commandName": "MsixPackage",
       "nativeDebugging": false,
-      "commandLineArgs": "directorydb-1.zdv.uni-mainz.de ZDVDEV_OpenIdConnect"
+      "commandLineArgs": "directorydb-1.zdv.uni-mainz.de ZDVDEV_OpenIdServer"
     }
   }
 }

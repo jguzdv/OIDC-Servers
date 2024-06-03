@@ -1,17 +1,25 @@
-﻿@inherits LayoutComponentBase
+﻿@using JGUZDV.OIDC.ProtocolServer.Model
+@using Microsoft.Data.SqlClient
+@using Microsoft.EntityFrameworkCore
+@inherits LayoutComponentBase
 
-@inject ConfigAppContext ConfigAppContext
+@inject ApplicationDbContext DbContext
 @inject NavigationManager NavigationManager
 
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
     <main>
         <div class="top-row px-4">
-            <div class="flex-fill">@ConfigAppContext.ConnectionString</div>
-            <button @onclick="() => Disconnect()"><i class="fa fa-fw fa-plug"></i> Disconnect</button>
+            <div class="flex-fill">
+                <NavLink href="/">
+                    Clients
+                </NavLink>
+                <NavLink href="/scopes">
+                    Scopes
+                </NavLink>
+            </div>
+            <div>
+                <i class="fa fa-fw fa-plug"></i> @_connectionData
+            </div>
         </div>
 
         <article class="content px-4">
@@ -21,9 +29,13 @@
 </div>
 
 @code {
-    private void Disconnect()
+    private string? _connectionData;
+
+    protected override void OnInitialized()
     {
-        ConfigAppContext.Disconnect();
-        NavigationManager.NavigateTo("/");
+        base.OnInitialized();
+
+        var csBuilder = new SqlConnectionStringBuilder(DbContext.Database.GetDbConnection().ConnectionString);
+        _connectionData = $"{csBuilder.InitialCatalog} @ {csBuilder.DataSource}";
     }
 }
