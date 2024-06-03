@@ -42,6 +42,7 @@
     <ItemGroup>
       <ProjectReference Include="..\..\..\GitHub-Nuget-Packages\libraries\JGUZDV.ActiveDirectory\src\JGUZDV.ActiveDirectory.csproj" />
       <ProjectReference Include="..\..\..\GitHub-Nuget-Packages\libraries\JGUZDV.OpenIddict.KeyManager\src\JGUZDV.OpenIddict.KeyManager.csproj" />
+      <ProjectReference Include="..\OIDC.ProtocolServer.Model\OIDC.ProtocolServer.Model.csproj" />
     </ItemGroup>
 
     <ItemGroup>

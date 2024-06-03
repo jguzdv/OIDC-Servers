@@ -7,7 +7,7 @@ using JGUZDV.OIDC.ProtocolServer.ActiveDirectory;
 using JGUZDV.OIDC.ProtocolServer.Authentication;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
-using JGUZDV.OIDC.ProtocolServer.Data;
+using JGUZDV.OIDC.ProtocolServer.Model;
 using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
 using JGUZDV.OpenIddict.KeyManager.Configuration;
 
@@ -101,7 +101,7 @@ services.AddOpenIddict()
     .AddCore(options =>
     {
         options.UseEntityFrameworkCore()
-                .UseDbContext<ApplicationDbContext>();
+            .UseDbContext<ApplicationDbContext>();
 
         options.ReplaceApplicationManager<JGUApplicationManager>();
     })

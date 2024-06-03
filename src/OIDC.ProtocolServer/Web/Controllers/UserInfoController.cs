@@ -1,5 +1,5 @@
 ﻿using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
-using JGUZDV.OIDC.ProtocolServer.Data;
+using JGUZDV.OIDC.ProtocolServer.Model;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
