@@ -1,16 +1,14 @@
-﻿using System.Linq;
-using System.Text.Json;
-using System.Text.RegularExpressions;
+﻿using System.Text.Json;
 
-using IdentityServer4.Stores;
-
-using JGUZDV.OIDC.ProtocolServer.Data;
+using JGUZDV.OIDC.ProtocolServer.Model;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using OpenIddict.Abstractions;
+using OpenIddict.Core;
+using OpenIddict.EntityFrameworkCore.Models;
 
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -18,8 +16,8 @@ internal class DataMigrationWorker : IHostedService
 {
     private readonly IdentityServer4.EntityFramework.DbContexts.ConfigurationDbContext _srcContext;
     private readonly IdentityServer4.Stores.IClientStore _clientStore;
-    private readonly IResourceStore _resourceStore;
-    private readonly IOpenIddictApplicationManager _applicationManager;
+    private readonly IdentityServer4.Stores.IResourceStore _resourceStore;
+    private readonly OpenIddictApplicationManager<OpenIddictEntityFrameworkCoreApplication> _applicationManager;
     private readonly IOpenIddictScopeManager _scopeManager;
     private readonly IHostApplicationLifetime _hostApplicationLifetime;
     private readonly ILogger<DataMigrationWorker> _logger;
@@ -28,7 +26,7 @@ internal class DataMigrationWorker : IHostedService
         IdentityServer4.EntityFramework.DbContexts.ConfigurationDbContext srcContext,
         IdentityServer4.Stores.IClientStore clientStore,
         IdentityServer4.Stores.IResourceStore resourceStore,
-        IOpenIddictApplicationManager applicationManager,
+        OpenIddictApplicationManager<OpenIddictEntityFrameworkCoreApplication> applicationManager,
         IOpenIddictScopeManager scopeManager,
         IHostApplicationLifetime hostApplicationLifetime,
         ILogger<DataMigrationWorker> logger

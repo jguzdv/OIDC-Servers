@@ -11,9 +11,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\OIDC.ProtocolServer\Data\Claim.cs" Link="Claim.cs" />
-    <Compile Include="..\OIDC.ProtocolServer\Data\CustomProperties.cs" Link="CustomProperties.cs" />
-    <Compile Include="..\OIDC.ProtocolServer\Data\MFAProps.cs" Link="MFAProps.cs" />
+    <Compile Include="..\OIDC.ProtocolServer.Model\Claim.cs" Link="Claim.cs" />
+    <Compile Include="..\OIDC.ProtocolServer.Model\CustomProperties.cs" Link="CustomProperties.cs" />
+    <Compile Include="..\OIDC.ProtocolServer.Model\MFAProps.cs" Link="MFAProps.cs" />
   </ItemGroup>
 
   <ItemGroup>

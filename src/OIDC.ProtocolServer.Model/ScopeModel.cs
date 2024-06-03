@@ -2,7 +2,7 @@
 
 using OpenIddict.Abstractions;
 
-namespace JGUZDV.OIDC.ProtocolServer.Data
+namespace JGUZDV.OIDC.ProtocolServer.Model
 {
     public record ScopeModel(
         string Name,
@@ -20,7 +20,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Data
             return await FromScopeObject(scopeManager, scope, ct);
         }
 
-        internal static async Task<ImmutableArray<ScopeModel>> FromScopeNamesAsync(IOpenIddictScopeManager scopeManager, ImmutableArray<string> scopeNames, CancellationToken ct)
+        public static async Task<ImmutableArray<ScopeModel>> FromScopeNamesAsync(IOpenIddictScopeManager scopeManager, ImmutableArray<string> scopeNames, CancellationToken ct)
         {
             var tasks = new List<Task<ScopeModel>>();
             await foreach (var scope in scopeManager.FindByNamesAsync(scopeNames, ct))

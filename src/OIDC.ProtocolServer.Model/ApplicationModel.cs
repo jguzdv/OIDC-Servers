@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 
 using OpenIddict.Abstractions;
 
-namespace JGUZDV.OIDC.ProtocolServer.Data
+namespace JGUZDV.OIDC.ProtocolServer.Model
 {
     public record ApplicationModel(
         [property:NotNull] string? Id,

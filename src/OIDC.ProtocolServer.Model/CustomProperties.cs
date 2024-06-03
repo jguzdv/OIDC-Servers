@@ -2,7 +2,7 @@
 
 using OpenIddict.Abstractions;
 
-namespace JGUZDV.OIDC.ProtocolServer.Data
+namespace JGUZDV.OIDC.ProtocolServer.Model
 {
     public abstract class CustomProperties
     {

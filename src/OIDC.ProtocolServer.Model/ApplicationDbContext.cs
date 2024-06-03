@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace JGUZDV.OIDC.ProtocolServer.Data;
+namespace JGUZDV.OIDC.ProtocolServer.Model;
 
 public class ApplicationDbContext : DbContext
 {
