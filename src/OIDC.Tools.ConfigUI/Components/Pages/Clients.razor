@@ -1,0 +1,71 @@
+@page "/"
+@page "/clients"
+
+@using JGUZDV.OIDC.ProtocolServer.Model
+@using OpenIddict.Abstractions
+@using OpenIddict.Core
+@using OpenIddict.EntityFrameworkCore.Models
+
+@inject IOpenIddictApplicationManager _applicationManager
+
+<table>
+    <thead>
+        <tr>
+            <th>Client ID</th>
+            <th>Client Name</th>
+            <th>Redirect URIs</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var app in _applications)
+        {
+            <tr>
+                <td>@app.ClientId</td>
+                <td>@app.DisplayName</td>
+                <td>
+                    <ul>
+                        @foreach (var uri in app.RedirectUris)
+                        {
+                            <li>@uri</li>
+                        }
+                    </ul>
+                </td>
+                <td>
+                    <button>Edit</button>
+                    <button>Delete</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<OpenIddictApplicationDescriptor> _applications = [];
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var clients = new List<object>();
+
+        var clientEnumerable = _applicationManager.ListAsync();
+        await foreach (var clientEntry in clientEnumerable)
+        {
+            clients.Add(clientEntry);
+        }
+
+        foreach(var clientEntry in clients)
+        {
+            var appDescriptor = new OpenIddictApplicationDescriptor();
+            await _applicationManager.PopulateAsync(clientEntry, appDescriptor);
+
+            _applications.Add(appDescriptor);
+        }
+    }
+}

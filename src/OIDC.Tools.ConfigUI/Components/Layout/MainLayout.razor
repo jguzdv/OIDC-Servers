@@ -1,5 +1,8 @@
 ﻿@inherits LayoutComponentBase
 
+@inject ConfigAppContext ConfigAppContext
+@inject NavigationManager NavigationManager
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -7,7 +10,8 @@
 
     <main>
         <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <div class="flex-fill">@ConfigAppContext.ConnectionString</div>
+            <button @onclick="() => Disconnect()"><i class="fa fa-fw fa-plug"></i> Disconnect</button>
         </div>
 
         <article class="content px-4">
@@ -15,3 +19,11 @@
         </article>
     </main>
 </div>
+
+@code {
+    private void Disconnect()
+    {
+        ConfigAppContext.Disconnect();
+        NavigationManager.NavigateTo("/");
+    }
+}
