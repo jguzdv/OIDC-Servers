@@ -10,7 +10,10 @@
     {
         <div class="card mb-4">
             <div class="card-header">
-                <h2>@ApplicationDescriptor.DisplayName</h2>
+                <div class="d-flex">
+                    <h2>@ApplicationDescriptor.DisplayName</h2>
+                    <button @onclick="() => SaveChanges()"><i class="fa fa-fw fa-save"></i></button>
+                </div>
             </div>
             <div class="card-body">
                 <div class="row">
@@ -22,6 +25,10 @@
                         <div class="mb-3">
                             <label for="client-name">Client Name</label>
                             <input type="text" id="client-name" class="form-control" @bind-value="@ApplicationDescriptor.DisplayName" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="client-name">Client Secret</label>
+                            <SecretInput Application="@ApplicationDescriptor" />
                         </div>
                         <div class="mb-3">
                             <div class="row">
@@ -82,7 +89,7 @@
 
     private object? _client;
 
-    private OpenIddictApplicationDescriptor ApplicationDescriptor { get; } = new();
+    private OpenIddictApplicationDescriptor ApplicationDescriptor { get; set; } = new();
     private ApplicationProperties? ApplicationProperties { get; set; }
 
     private List<(string Value, string Displayname)> GrantTypePermissions { get; } = new();
@@ -138,16 +145,39 @@
     {
         await base.OnParametersSetAsync();
 
-        // Load the client details
-        _client = await _applicationManager.FindByClientIdAsync(ClientId);
-        if (_client == null)
+        if (ClientId != null)
         {
-            // TODO: Add toasts and use it here
-            NavigationManager.NavigateTo("/");
-            return;
+            // Load the client details
+            _client = await _applicationManager.FindByClientIdAsync(ClientId);
+            if (_client == null)
+            {
+                // TODO: Add toasts and use it here
+                NavigationManager.NavigateTo("/");
+                return;
+            }
+
+            await _applicationManager.PopulateAsync(ApplicationDescriptor, _client);
+            ApplicationProperties = ApplicationProperties.DeserializeFromProperties(ApplicationDescriptor.Properties);
         }
 
-        await _applicationManager.PopulateAsync(ApplicationDescriptor, _client);
-        ApplicationProperties = ApplicationProperties.DeserializeFromProperties(ApplicationDescriptor.Properties);
+        else
+        {
+            ApplicationDescriptor = new();
+            ApplicationProperties = new ApplicationProperties();
+        }
+    }
+
+
+    private async Task SaveChanges()
+    {
+        if (_client == null)
+        {
+            await _applicationManager.CreateAsync(ApplicationDescriptor);
+        }
+        else
+        {
+            await _applicationManager.UpdateAsync(_client, ApplicationDescriptor);
+        }
+        NavigationManager.NavigateTo("/");
     }
 }
