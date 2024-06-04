@@ -1,45 +1,138 @@
 @page "/clients/{clientId}"
+@using JGUZDV.OIDC.ProtocolServer.Model
 @using OpenIddict.Abstractions
 
 @inject IOpenIddictApplicationManager _applicationManager
+@inject IOpenIddictScopeManager _scopeManager
 
-@if(_client != null)
-{
-    <div class="card">
-        <div class="card-header">
-            <h2>@ApplicationDescriptor.DisplayName</h2>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-lg-6">
-                    <div>
-                        <label for="client-id">Client ID</label>
-                        <input type="text" id="client-id" class="form-control" @bind-value="@ApplicationDescriptor.ClientId" />
+<div class="container">
+    @if (_client != null)
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2>@ApplicationDescriptor.DisplayName</h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="mb-3">
+                            <label for="client-id">Client ID</label>
+                            <input type="text" id="client-id" class="form-control" @bind-value="@ApplicationDescriptor.ClientId" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="client-name">Client Name</label>
+                            <input type="text" id="client-name" class="form-control" @bind-value="@ApplicationDescriptor.DisplayName" />
+                        </div>
+                        <div class="mb-3">
+                            <div class="row">
+                                <div class="col-6">
+                                    <h3 class="h4">Granttypes</h3>
+                                    @foreach (var permission in GrantTypePermissions)
+                                    {
+                                        <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
+                                    }
+                                </div>
+                                <div class="col-6">
+                                    <h3 class="h4">ResponseTypes</h3>
+                                    @foreach (var permission in ResponseTypePermissions)
+                                    {
+                                        <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <h3 class="h4">Endpoints</h3>
+                            @foreach (var permission in EndpointPermissions)
+                            {
+                                <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
+                            }
+                        </div>
+                        <div class="mb-3">
+                            <h3 class="h4">Redirect Uris</h3>
+                            <UriList Items="@ApplicationDescriptor.RedirectUris" />
+                        </div>
+                        <div class="mb-3">
+                            <h3 class="h4">Post-logout Redirect Uris</h3>
+                            <UriList Items="@ApplicationDescriptor.PostLogoutRedirectUris" />
+                        </div>
                     </div>
-                    <div>
-                        <label for="client-name">Client Name</label>
-                        <input type="text" id="client-name" class="form-control" @bind-value="@ApplicationDescriptor.DisplayName" />
+                    <div class="col-lg-6">
+                        <div class="mb-3">
+                            <h3>Scopes</h3>
+                            @foreach (var permission in ScopePermissions)
+                            {
+                                <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
+                            }
+                        </div>
                     </div>
-                    
-                </div>
-                <div class="col-lg-6">
-
                 </div>
             </div>
         </div>
-    </div>
-}
-else
-{
-    <p>Loading... (ActiviteIndicator)</p>
-}
+    }
+    else
+    {
+        <p>Loading... (ActivityIndicator)</p>
+    }
+</div>
 
 @code {
     [Parameter]
     public string ClientId { get; set; }
 
     private object? _client;
+
     private OpenIddictApplicationDescriptor ApplicationDescriptor { get; } = new();
+    private ApplicationProperties? ApplicationProperties { get; set; }
+
+    private List<(string Value, string Displayname)> GrantTypePermissions { get; } = new();
+    private List<(string Value, string Displayname)> ResponseTypePermissions { get; } = new();
+    private List<(string Value, string Displayname)> ScopePermissions { get; } = new();
+    private List<(string Value, string Displayname)> EndpointPermissions { get; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        GrantTypePermissions.Add((OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode, "Authorization Code"));
+        GrantTypePermissions.Add((OpenIddictConstants.Permissions.GrantTypes.ClientCredentials, "Client Credentials"));
+        GrantTypePermissions.Add((OpenIddictConstants.Permissions.GrantTypes.DeviceCode, "Device Code"));
+        GrantTypePermissions.Add((OpenIddictConstants.Permissions.GrantTypes.Implicit, "Implicit"));
+        GrantTypePermissions.Add((OpenIddictConstants.Permissions.GrantTypes.Password, "Password"));
+        GrantTypePermissions.Add((OpenIddictConstants.Permissions.GrantTypes.RefreshToken, "Refresh Token"));
+
+        ResponseTypePermissions.Add((OpenIddictConstants.Permissions.ResponseTypes.Code, "Code"));
+        ResponseTypePermissions.Add((OpenIddictConstants.Permissions.ResponseTypes.CodeIdToken, "Code IdToken"));
+        ResponseTypePermissions.Add((OpenIddictConstants.Permissions.ResponseTypes.CodeIdTokenToken, "Code IdToken Token"));
+        ResponseTypePermissions.Add((OpenIddictConstants.Permissions.ResponseTypes.CodeToken, "Code Token"));
+        ResponseTypePermissions.Add((OpenIddictConstants.Permissions.ResponseTypes.IdToken, "ID Token"));
+        ResponseTypePermissions.Add((OpenIddictConstants.Permissions.ResponseTypes.IdTokenToken, "IdToken Token"));
+        ResponseTypePermissions.Add((OpenIddictConstants.Permissions.ResponseTypes.Token, "Token"));
+
+        EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Authorization, "Authorization"));
+        EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Device, "Device"));
+        EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Introspection, "Introspection"));
+        EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Logout, "Logout"));
+        EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Revocation, "Revocation"));
+        EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Token, "Token"));
+
+        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Profile, "Profile"));
+        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Roles, "Roles"));
+        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Email, "Email"));
+        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Phone, "Phone"));
+        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Address, "Address"));
+
+        // Load all scopes
+        var scopes = _scopeManager.ListAsync();
+
+        await foreach (var scope in scopes)
+        {
+            var scopeDescriptor = new OpenIddictScopeDescriptor();
+            await _scopeManager.PopulateAsync(scopeDescriptor, scope);
+
+            ScopePermissions.Add((OpenIddictConstants.Permissions.Prefixes.Scope + scopeDescriptor.Name, $"{scopeDescriptor.DisplayName} ({scopeDescriptor.Name})"));
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -55,5 +148,6 @@ else
         }
 
         await _applicationManager.PopulateAsync(ApplicationDescriptor, _client);
+        ApplicationProperties = ApplicationProperties.DeserializeFromProperties(ApplicationDescriptor.Properties);
     }
 }

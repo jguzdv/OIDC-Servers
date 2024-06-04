@@ -1,0 +1,28 @@
+<div class="text-nowrap">
+    <input type="checkbox" checked="@Permissions.Contains(Permission)" @onchange="(e) => ToggleValue((bool)(e.Value ?? false), Permission)" />
+    <label>@DisplayName</label>
+</div>
+
+@code {
+    [Parameter]
+    public required ISet<string> Permissions { get; set; }
+
+    [Parameter]
+    public required string Permission { get; set; }
+
+    [Parameter]
+    public required string DisplayName { get; set; }
+
+
+    private void ToggleValue(bool isChecked, string value)
+    {
+        if (isChecked)
+        {
+            Permissions.Add(value);
+        }
+        else
+        {
+            Permissions.Remove(value);
+        }
+    }
+}

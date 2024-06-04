@@ -1,0 +1,38 @@
+<div>
+    <div class="input-group">
+        <input type="text" class="form-control" @bind-value="@NewValue" />
+        <button class="btn btn-success" @onclick="() => AddNewValue()"><i class="fa fa-fw fa-plus"></i></button>
+    </div>
+    <ul class="mt-2">
+        @foreach (var item in Items)
+        {
+            <li>
+                <div class="d-flex">
+                    <i class="text-danger fa fa-fw fa-times" @onclick="() => Remove(item)"></i> <span>@item</span>
+                </div>
+            </li>
+        }
+    </ul>
+</div>
+
+@code {
+    [Parameter]
+    public required ISet<Uri> Items { get; set; }
+
+    private string? NewValue { get; set; }
+
+    private void AddNewValue()
+    {
+        if (Uri.TryCreate(NewValue, UriKind.Absolute, out var uri))
+        {
+            Items.Add(uri);
+            NewValue = null;
+        }
+    }
+
+    private void Remove(Uri item)
+    {
+        NewValue = item.ToString();
+        Items.Remove(item);
+    }
+}
