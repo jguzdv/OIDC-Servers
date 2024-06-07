@@ -1,6 +1,6 @@
 <div class="text-nowrap">
-    <input type="checkbox" checked="@Permissions.Contains(Permission)" @onchange="(e) => ToggleValue((bool)(e.Value ?? false), Permission)" />
-    <label>@DisplayName</label>
+    <input type="checkbox" id="@Permission" checked="@Permissions.Contains(Permission)" @onchange="(e) => ToggleValue((bool)(e.Value ?? false), Permission)" />
+    <label for="@Permission">@DisplayName</label>
 </div>
 
 @code {

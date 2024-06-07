@@ -1,5 +1,7 @@
+@using JGUZDV.OIDC.ProtocolServer.Model
 <div>
     <div class="input-group">
+        <input type="text" class="form-control" @bind-value="@NewType" />
         <input type="text" class="form-control" @bind-value="@NewValue" />
         <button class="btn btn-success" @onclick="() => AddNewValue()"><i class="fa fa-fw fa-plus"></i></button>
     </div>
@@ -8,7 +10,7 @@
         {
             <li>
                 <div class="d-flex">
-                    <i class="text-danger fa fa-fw fa-times" @onclick="() => Remove(item)"></i> <span>@item</span>
+                    <i class="text-danger fa fa-fw fa-times" @onclick="() => Remove(item)"></i> <span>@item.Type: @item.Value</span>
                 </div>
             </li>
         }
@@ -17,22 +19,26 @@
 
 @code {
     [Parameter]
-    public required ICollection<Uri> Items { get; set; }
+    public required ICollection<Claim> Items { get; set; }
 
     private string? NewValue { get; set; }
+    private string? NewType { get; set; }
 
     private void AddNewValue()
     {
-        if (Uri.TryCreate(NewValue, UriKind.Absolute, out var uri))
+        if(!string.IsNullOrEmpty(NewType) && !string.IsNullOrEmpty(NewValue))
         {
-            Items.Add(uri);
+            Items.Add(new Claim(NewType, NewValue));
             NewValue = null;
+            NewType = null;
         }
     }
 
-    private void Remove(Uri item)
+    private void Remove(Claim item)
     {
-        NewValue = item.ToString();
+        NewType = item.Type;
+        NewValue = item.Value;
+        
         Items.Remove(item);
     }
 }

@@ -1,4 +1,5 @@
-@page "/clients/{clientId}"
+@page "/client"
+@page "/client/{clientId}"
 @using JGUZDV.OIDC.ProtocolServer.Model
 @using OpenIddict.Abstractions
 
@@ -6,13 +7,13 @@
 @inject IOpenIddictScopeManager _scopeManager
 
 <div class="container">
-    @if (_client != null)
+    @if (_client != null || _createNew)
     {
         <div class="card mb-4">
             <div class="card-header">
-                <div class="d-flex">
+                <div class="d-flex justify-content-between">
                     <h2>@ApplicationDescriptor.DisplayName</h2>
-                    <button @onclick="() => SaveChanges()"><i class="fa fa-fw fa-save"></i></button>
+                    <button class="btn btn-success" @onclick="() => SaveChanges()"><i class="fa fa-fw fa-save"></i></button>
                 </div>
             </div>
             <div class="card-body">
@@ -63,6 +64,20 @@
                             <h3 class="h4">Post-logout Redirect Uris</h3>
                             <UriList Items="@ApplicationDescriptor.PostLogoutRedirectUris" />
                         </div>
+                        
+                        <div class="mb-3">
+                            <h3 class="h4">Requested claim types</h3>
+                            <StringList Items="@ApplicationProperties.RequestedClaimTypes" />
+                        </div>
+                        <div class="mb-3">
+                            <h3 class="h4">Static claims</h3>
+                            <ClaimList Items="@ApplicationProperties.StaticClaims" />
+                        </div>
+
+                        <div class="mb-3">
+                            <h3 class="h4">MFA</h3>
+                            <MfaEditor Value="@ApplicationProperties.MFA" />
+                        </div>
                     </div>
                     <div class="col-lg-6">
                         <div class="mb-3">
@@ -85,12 +100,13 @@
 
 @code {
     [Parameter]
-    public string ClientId { get; set; }
+    public required string ClientId { get; set; }
 
     private object? _client;
+    private bool _createNew;
 
     private OpenIddictApplicationDescriptor ApplicationDescriptor { get; set; } = new();
-    private ApplicationProperties? ApplicationProperties { get; set; }
+    private ApplicationProperties ApplicationProperties { get; set; } = new();
 
     private List<(string Value, string Displayname)> GrantTypePermissions { get; } = new();
     private List<(string Value, string Displayname)> ResponseTypePermissions { get; } = new();
@@ -145,7 +161,9 @@
     {
         await base.OnParametersSetAsync();
 
-        if (ClientId != null)
+        _createNew = ClientId == null;
+
+        if (!_createNew)
         {
             // Load the client details
             _client = await _applicationManager.FindByClientIdAsync(ClientId);
@@ -170,6 +188,8 @@
 
     private async Task SaveChanges()
     {
+        ApplicationDescriptor.Properties[CustomProperties.PropertyName] = ApplicationProperties.Serialize();
+
         if (_client == null)
         {
             await _applicationManager.CreateAsync(ApplicationDescriptor);

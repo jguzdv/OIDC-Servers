@@ -17,20 +17,17 @@
 
 @code {
     [Parameter]
-    public required ICollection<Uri> Items { get; set; }
+    public required ICollection<string> Items { get; set; }
 
     private string? NewValue { get; set; }
 
     private void AddNewValue()
     {
-        if (Uri.TryCreate(NewValue, UriKind.Absolute, out var uri))
-        {
-            Items.Add(uri);
-            NewValue = null;
-        }
+        Items.Add(NewValue);
+        NewValue = null;
     }
 
-    private void Remove(Uri item)
+    private void Remove(string item)
     {
         NewValue = item.ToString();
         Items.Remove(item);

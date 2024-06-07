@@ -198,7 +198,7 @@ internal class DataMigrationWorker : IHostedService
                         descriptor.Permissions.Add(Permissions.GrantTypes.Implicit);
                         descriptor.Permissions.Add(Permissions.GrantTypes.AuthorizationCode);
                         descriptor.Permissions.Add(Permissions.Endpoints.Token);
-                        descriptor.Permissions.Add(Permissions.ResponseTypes.CodeIdToken);
+                        descriptor.Permissions.Add(Permissions.ResponseTypes.CodeIdTokenToken);
                         break;
                     case "authorization_code":
                         descriptor.Permissions.Add(Permissions.GrantTypes.AuthorizationCode);

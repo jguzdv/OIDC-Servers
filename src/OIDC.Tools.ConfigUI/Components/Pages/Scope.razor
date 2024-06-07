@@ -1,0 +1,111 @@
+@page "/scope"
+@page "/scope/{scopeName}"
+
+@using JGUZDV.OIDC.ProtocolServer.Model
+@using OpenIddict.Abstractions
+
+@inject IOpenIddictScopeManager _scopeManager
+
+<div class="container">
+    @if (_scope != null || _createNew)
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between">
+                    <h2>@ScopeDescriptor.DisplayName</h2>
+                    <button class="btn btn-success" @onclick="() => SaveChanges()"><i class="fa fa-fw fa-save"></i></button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="mb-3">
+                            <label for="client-id">Scope Name</label>
+                            <input type="text" id="client-id" class="form-control" @bind-value="@ScopeDescriptor.Name" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="client-name">DisplayName</label>
+                            <input type="text" id="client-name" class="form-control" @bind-value="@ScopeDescriptor.DisplayName" />
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="mb-3">
+                            <h3 class="h4">Requested claim types</h3>
+                            <StringList Items="@ScopeProperties!.RequestedClaimTypes" />
+                        </div>
+
+                        <div class="mb-3">
+                            <h3 class="h4">Static claims</h3>
+                            <ClaimList Items="@ScopeProperties!.StaticClaims" />
+                        </div>
+
+                        <div class="mb-3">
+                            <h3 class="h4">MFA</h3>
+                            <MfaEditor Value="@ScopeProperties!.MFA" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <p>Loading... (ActivityIndicator)</p>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public required string ScopeName { get; set; }
+
+    private object? _scope;
+    private bool _createNew;
+
+    private OpenIddictScopeDescriptor ScopeDescriptor { get; set; } = new();
+    private ScopeProperties? ScopeProperties { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        _createNew = ScopeName == null;
+
+        if (!_createNew)
+        {
+            // Load the client details
+            _scope = await _scopeManager.FindByNameAsync(ScopeName);
+            if (_scope == null)
+            {
+                // TODO: Add toasts and use it here
+                NavigationManager.NavigateTo("/");
+                return;
+            }
+
+            await _scopeManager.PopulateAsync(ScopeDescriptor, _scope);
+            ScopeProperties = ScopeProperties.DeserializeFromProperties(ScopeDescriptor.Properties);
+        }
+
+        else
+        {
+            ScopeDescriptor = new();
+            ScopeProperties = new ScopeProperties();
+        }
+    }
+
+
+    private async Task SaveChanges()
+    {
+        ScopeDescriptor.Properties[CustomProperties.PropertyName] = ScopeProperties.Serialize();
+
+        if (_scope == null)
+        {
+            await _scopeManager.CreateAsync(ScopeDescriptor);
+        }
+        else
+        {
+            await _scopeManager.UpdateAsync(_scope, ScopeDescriptor);
+        }
+
+        NavigationManager.NavigateTo("/");
+    }
+}
