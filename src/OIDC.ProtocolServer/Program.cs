@@ -120,8 +120,11 @@ services.AddOpenIddict()
 
         options
             .AllowAuthorizationCodeFlow()
+            .AllowRefreshTokenFlow()
             .AllowDeviceCodeFlow()
-            .AllowRefreshTokenFlow();
+            .AllowImplicitFlow()
+            .AllowHybridFlow();
+
 
         //if (builder.Environment.IsDevelopment())
         //{
