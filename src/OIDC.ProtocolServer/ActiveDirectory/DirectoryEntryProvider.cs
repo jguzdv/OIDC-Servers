@@ -1,12 +1,10 @@
 ﻿using System.DirectoryServices;
 using System.Security.Claims;
-using System.Security.Principal;
 
 using JGUZDV.ActiveDirectory;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
 
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -31,13 +29,22 @@ namespace JGUZDV.OIDC.ProtocolServer.ActiveDirectory
 
             if (string.IsNullOrEmpty(userIdentifier))
             {
+                _logger.LogDebug("No 'sub' or '{claimType}' claim found in principal. Listing principal claims: {claims}",
+                    _options.Value.UserClaimType,
+                    string.Join("\r\n", principal.Claims.Select(c => $"{c.Type}: {c.Value}"))
+                    );
                 throw new InvalidOperationException($"No subject or {_options.Value.UserClaimType} claim found in principal.");
             }
 
             var (isBindable, bindPath) = UserEntryHelper.IsBindableIdentity(userIdentifier);
             if (!isBindable)
             {
-                throw new InvalidOperationException("No valid subject or sid claim found in principal.");
+                _logger.LogDebug("No 'sub' or '{claimType}' claim found in principal. Listing principal claims: {claims}",
+                    _options.Value.UserClaimType,
+                    string.Join("\r\n", principal.Claims.Select(c => $"{c.Type}: {c.Value}"))
+                    );
+
+                throw new InvalidOperationException($"The user identifier '{userIdentifier}' seems not to be bindable to AD.");
             }
 
             return UserEntryHelper.BindDirectoryEntry(_options.Value.LdapServer, bindPath!, propertiesToLoad);
