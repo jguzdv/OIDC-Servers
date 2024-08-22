@@ -296,7 +296,7 @@ public class ConnectController(
         bool requestNeedsMFA = false;
         var needsChallenge = authenticationResult?.Succeeded != true 
             || HasLoginPromptOrIsTooOld() 
-            || (requestNeedsMFA = NeedsMFAChallange());
+            || (requestNeedsMFA = NeedsMFAChallenge());
             
         if (needsChallenge)
         {
@@ -349,7 +349,7 @@ public class ConnectController(
             return _timeProvider.GetUtcNow() - issuedAt > maxAge;
         }
 
-        bool NeedsMFAChallange()
+        bool NeedsMFAChallenge()
         {
             var mfaRequirements = scopes
                 .Where(x => x.Properties.MFA.Required)

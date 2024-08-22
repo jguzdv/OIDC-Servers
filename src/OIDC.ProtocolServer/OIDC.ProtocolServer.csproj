@@ -16,8 +16,8 @@
         <PackageReference Include="JGUZDV.AspNetCore.Authentication.Cookies" Version="1.0.0" />
         <PackageReference Include="JGUZDV.AspNetCore.DataProtection" Version="1.1.1" />
         <PackageReference Include="JGUZDV.AspNetCore.Logging" Version="1.0.8" />
-        <!-- <PackageReference Include="JGUZDV.ActiveDirectory.ClaimProvider" Version="1.0.0-beta3" /> -->
-        <!-- <PackageReference Include="JGUZDV.OpenIddict.KeyManager" Version="1.0.0-beta" /> -->
+        <PackageReference Include="JGUZDV.ActiveDirectory" Version="1.0.0-beta" />
+        <PackageReference Include="JGUZDV.OpenIddict.KeyManager" Version="1.0.0-beta2" />
         
         <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.4" />
         
@@ -40,8 +40,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\..\GitHub-Nuget-Packages\libraries\JGUZDV.ActiveDirectory\src\JGUZDV.ActiveDirectory.csproj" />
-      <ProjectReference Include="..\..\..\GitHub-Nuget-Packages\libraries\JGUZDV.OpenIddict.KeyManager\src\JGUZDV.OpenIddict.KeyManager.csproj" />
       <ProjectReference Include="..\OIDC.ProtocolServer.Model\OIDC.ProtocolServer.Model.csproj" />
     </ItemGroup>
 
