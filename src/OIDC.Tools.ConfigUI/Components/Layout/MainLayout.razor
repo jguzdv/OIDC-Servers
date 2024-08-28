@@ -10,12 +10,18 @@
     <main>
         <div class="top-row px-4">
             <div class="flex-fill">
-                <NavLink href="/">
-                    Clients
-                </NavLink>
-                <NavLink href="/scopes">
-                    Scopes
-                </NavLink>
+                <ul class="nav">
+                    <li class="nav-item">
+                        <NavLink href="/" class="nav-link fw-semibold text-decoration-none" Match="NavLinkMatch.All">
+                            Clients
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink href="/scopes" class="nav-link fw-semibold text-decoration-none" Match="NavLinkMatch.All">
+                            Scopes
+                        </NavLink>
+                    </li>
+                </ul>
             </div>
             <div>
                 <i class="fa fa-fw fa-plug"></i> @_connectionData

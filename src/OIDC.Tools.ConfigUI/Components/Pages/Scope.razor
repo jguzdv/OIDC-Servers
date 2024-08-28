@@ -24,8 +24,18 @@
                             <input type="text" id="client-id" class="form-control" @bind-value="@ScopeDescriptor.Name" />
                         </div>
                         <div class="mb-3">
-                            <label for="client-name">DisplayName</label>
+                            <label for="client-name">Display Name</label>
                             <input type="text" id="client-name" class="form-control" @bind-value="@ScopeDescriptor.DisplayName" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="target-tokens">Target token</label>
+                            <select class="form-select" id="target-tokens" @bind="SelectedTargetToken">
+                                <option disabled selected>Select target token</option>
+                                @foreach (var token in ScopeProperties!.TargetToken)
+                                {
+                                    <option value=@token>@token</option>
+                                }
+                            </select>
                         </div>
                     </div>
                     <div class="col-lg-6">
@@ -63,6 +73,8 @@
 
     private OpenIddictScopeDescriptor ScopeDescriptor { get; set; } = new();
     private ScopeProperties? ScopeProperties { get; set; }
+
+    private string? SelectedTargetToken { get; set; }
 
     protected override async Task OnParametersSetAsync()
     {
