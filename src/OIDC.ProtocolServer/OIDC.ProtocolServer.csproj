@@ -19,24 +19,19 @@
         <PackageReference Include="JGUZDV.ActiveDirectory" Version="1.0.0-beta" />
         <PackageReference Include="JGUZDV.OpenIddict.KeyManager" Version="1.0.0-beta2" />
         
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.4" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.8" />
         
-        <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="8.0.4" />
-        <PackageReference Include="Microsoft.Extensions.Caching.SqlServer" Version="8.0.4" />
-        <!--
-            There seems to be a bug, when Microsoft.IdentityModel.Protocols.OpenIdConnect 7.2.1 (as used in MAA.OIDC)
-            is used with Microsoft.IdentityModel.Protocols 7.4.1 (as used in OpenIddict.AspNetCore), so we force the 
-            7.5.2 version here.
-        -->
-        <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="7.5.1" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.4">
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="8.0.8" />
+        <PackageReference Include="Microsoft.Extensions.Caching.SqlServer" Version="8.0.8" />
+        <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="8.0.2" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.8">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.4" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.8" />
         
-        <PackageReference Include="OpenIddict.AspNetCore" Version="5.5.0" />
-        <PackageReference Include="OpenIdDict.EntityFrameworkCore" Version="5.5.0" />
+        <PackageReference Include="OpenIddict.AspNetCore" Version="5.8.0" />
+        <PackageReference Include="OpenIdDict.EntityFrameworkCore" Version="5.8.0" />
     </ItemGroup>
 
     <ItemGroup>

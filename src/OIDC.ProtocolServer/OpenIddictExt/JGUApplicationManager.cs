@@ -63,9 +63,9 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         {
             foreach (var redirectUri in redirectUris.Where(x => x.Contains("__")))
             {
-                var regex = new Regex($"^{redirectUri.Replace("__", "[\\w\\d]*")}$", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(250));
+                var regexedRedirectUri = new Regex($"^{redirectUri.Replace("__", "[\\w\\d\\._-]*")}$", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(250));
 
-                if (Regex.IsMatch(uri, redirectUri))
+                if (regexedRedirectUri.IsMatch(uri))
                 {
                     return true;
                 }

@@ -1,4 +1,6 @@
-﻿using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
+﻿using System.Linq;
+
+using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Model;
 
 using Microsoft.AspNetCore.Authorization;
@@ -39,6 +41,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Web.Controllers
             var idClaims = scopes
                 .Where(x => x.Properties.TargetToken.Contains(Destinations.IdentityToken))
                 .SelectMany(x => x.Properties.RequestedClaimTypes)
+                .Except([Claims.Subject], StringComparer.OrdinalIgnoreCase) // We'll add the subject from the current user
                 .ToHashSet();
 
             var userClaims = new List<(string Type, string Value)>
@@ -52,8 +55,16 @@ namespace JGUZDV.OIDC.ProtocolServer.Web.Controllers
                 userClaims.AddRange(claims);
             }
 
-            // OpenIddict will accept userinfo claims as a dictionary of string, object
-            return Ok(userClaims.ToDictionary(x => x.Type, x => x.Value, StringComparer.OrdinalIgnoreCase));
+            // OpenIddict will accept userinfo claims as a dictionary<string, object>
+            // Since multiple claim providers might produce the same type, we'll group them by type
+            var result = userClaims.DistinctBy(x => (x.Type, x.Value))
+                .ToLookup(x => x.Type, x => x.Value, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary<IGrouping<string, string>, string, object>(
+                    x => x.Key,
+                    x => x.Count() == 1 ? x.First() : x.ToArray()
+                );
+
+            return Ok(result);
         }
     }
 }

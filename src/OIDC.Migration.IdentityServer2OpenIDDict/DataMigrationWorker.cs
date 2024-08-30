@@ -107,6 +107,13 @@ internal class DataMigrationWorker : IHostedService
             RequestedClaimTypes = new(srcScope.UserClaims),
         };
 
+        if(string.Equals(srcScope.Name, "openid", StringComparison.OrdinalIgnoreCase))
+        {
+            props.RequestedClaimTypes.Add("zdv_sub");
+            props.RequestedClaimTypes.Add("zdv_upn");
+        }
+
+
         if (srcScope is IdentityServer4.Models.ApiResource apiResource)
         {
             descriptor.Resources.Add(apiResource.Name);
@@ -192,12 +199,14 @@ internal class DataMigrationWorker : IHostedService
                 {
                     case "implicit":
                         descriptor.Permissions.Add(Permissions.GrantTypes.Implicit);
+                        descriptor.Permissions.Add(Permissions.ResponseTypes.IdToken);
                         descriptor.Permissions.Add(Permissions.ResponseTypes.IdTokenToken);
                         break;
                     case "hybrid":
                         descriptor.Permissions.Add(Permissions.GrantTypes.Implicit);
                         descriptor.Permissions.Add(Permissions.GrantTypes.AuthorizationCode);
                         descriptor.Permissions.Add(Permissions.Endpoints.Token);
+                        descriptor.Permissions.Add(Permissions.ResponseTypes.CodeIdToken);
                         descriptor.Permissions.Add(Permissions.ResponseTypes.CodeIdTokenToken);
                         break;
                     case "authorization_code":

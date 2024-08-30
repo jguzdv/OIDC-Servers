@@ -107,6 +107,11 @@ services.AddOpenIddict()
     })
     .AddServer(options =>
     {
+        if(builder.Configuration.GetValue<string>("ProtocolServer:Issuer") is string issuer and { Length: > 0 })
+        {
+            options.SetIssuer(issuer);
+        }
+
         // Enable the authorization, device, introspection,
         // logout, token, userinfo and verification endpoints.
         options
