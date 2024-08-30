@@ -29,14 +29,10 @@
                         </div>
                         <div class="mb-3">
                             <h3 class="h4">Target token</h3>
-                            <div class="text-nowrap">
-                                <input type="checkbox" id="@OpenIddictConstants.Destinations.AccessToken" checked="@ScopeProperties!.TargetToken.Contains(OpenIddictConstants.Destinations.AccessToken)" @onchange="(e) => ToggleTarget((bool)(e.Value ?? false), OpenIddictConstants.Destinations.AccessToken)" />
-                                <label for="@OpenIddictConstants.Destinations.AccessToken">@OpenIddictConstants.Destinations.AccessToken</label>
-                            </div>
-                            <div class="text-nowrap">
-                                <input type="checkbox" id="@OpenIddictConstants.Destinations.IdentityToken" checked="@ScopeProperties!.TargetToken.Contains(OpenIddictConstants.Destinations.IdentityToken)" @onchange="(e) => ToggleTarget((bool)(e.Value ?? false), OpenIddictConstants.Destinations.IdentityToken)" />
-                                <label for="@OpenIddictConstants.Destinations.IdentityToken">@OpenIddictConstants.Destinations.IdentityToken</label>
-                            </div>
+                            @foreach (var destination in Destinations)
+                            {
+                                <PermissionToggle Permissions="@SelectedTargetToken" Permission="@destination" DisplayName="@destination" />
+                            }
                         </div>
                     </div>
                     <div class="col-lg-6">
@@ -75,6 +71,9 @@
     private OpenIddictScopeDescriptor ScopeDescriptor { get; set; } = new();
     private ScopeProperties? ScopeProperties { get; set; }
 
+    private List<string> Destinations = new() { OpenIddictConstants.Destinations.AccessToken, OpenIddictConstants.Destinations.IdentityToken };
+    private HashSet<string> SelectedTargetToken = new();
+
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
@@ -88,7 +87,7 @@
             if (_scope == null)
             {
                 // TODO: Add toasts and use it here
-                NavigationManager.NavigateTo("/");
+                NavigationManager.NavigateTo("/scopes");
                 return;
             }
 
@@ -101,10 +100,13 @@
             ScopeDescriptor = new();
             ScopeProperties = new ScopeProperties();
         }
+
+        SelectedTargetToken = new HashSet<string>(ScopeProperties.TargetToken);
     }
 
     private async Task SaveChanges()
     {
+        ScopeProperties.TargetToken = SelectedTargetToken.ToList();
         ScopeDescriptor.Properties[CustomProperties.PropertyName] = ScopeProperties.Serialize();
 
         if (_scope == null)
@@ -116,18 +118,6 @@
             await _scopeManager.UpdateAsync(_scope, ScopeDescriptor);
         }
 
-        NavigationManager.NavigateTo("/");
-    }
-
-    private void ToggleTarget(bool isChecked, string value)
-    {
-        if (isChecked)
-        {
-            ScopeProperties!.TargetToken.Add(value);
-        }
-        else
-        {
-            ScopeProperties!.TargetToken.Remove(value);
-        }
+        NavigationManager.NavigateTo("/scopes");
     }
 }

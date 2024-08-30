@@ -62,10 +62,18 @@
                                 <input class="form-check-input" type="checkbox" role="switch" id="showAllScopes" @onclick=@(() => _showAllScopes = !_showAllScopes) checked="@_showAllScopes">
                                 <label class="form-check-label" for="showAllScopes">Show all scopes</label>
                             </div>
-                            @foreach (var permission in GetFilteredScopes().OrderBy(x => x.Displayname))
+                            @foreach (var permission in ScopePermissions.Where(x => ApplicationDescriptor.Permissions.Contains(x.Value)).OrderBy(x => x.Displayname))
                             {
                                 <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
                             }
+                            @if (_showAllScopes)
+                            {
+                                @foreach (var permission in ScopePermissions.Where(x => !ApplicationDescriptor.Permissions.Contains(x.Value)).OrderBy(x => x.Displayname))
+                                {
+                                    <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
+                                }
+                            }
+                            
                         </div>
                     </div>
                     <div class="col-lg-6">
@@ -85,6 +93,10 @@
 
                         <div class="mb-3">
                             <h3 class="h4">Redirect Uris</h3>
+                            @{
+                                var uris = _showAllRedirectUris ? ApplicationDescriptor.RedirectUris.ToList() : ApplicationDescriptor.RedirectUris.Take(5).ToList();
+                            }
+                            <UriList Items="@uris" />
                             @if (ApplicationDescriptor.RedirectUris.Count > 5)
                             {
                                 <div class="form-check form-switch">
@@ -92,24 +104,20 @@
                                     <label class="form-check-label" for="showAllRedirectUris">Show all created Redirect Uris</label>
                                 </div>
                             }
-                            @{
-                                var uris = _showAllRedirectUris ? ApplicationDescriptor.RedirectUris.ToList() : ApplicationDescriptor.RedirectUris.Take(5).ToList();
-                            }
-                            <UriList Items="@uris" />
                         </div>
                         <div class="mb-3">
                             <h3 class="h4">Post-logout Redirect Uris</h3>
-                            @if (ApplicationDescriptor.PostLogoutRedirectUris.Count > 5)
-                            {
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="showAllPostLogoutRedirectUris" @onclick=@(() => _showAllPLRedirectUris = !_showAllPLRedirectUris) checked="@_showAllPLRedirectUris">
-                                    <label class="form-check-label" for="showAllPostLogoutRedirectUris">Show all created Post-logout Redirect Uris</label>
-                                </div>
-                            }
                             @{
                                 var pluris = _showAllPLRedirectUris ? ApplicationDescriptor.PostLogoutRedirectUris.ToList() : ApplicationDescriptor.PostLogoutRedirectUris.Take(5).ToList();
                             }
                             <UriList Items="@pluris" />
+                            @if (ApplicationDescriptor.PostLogoutRedirectUris.Count > 5)
+                            {
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="showAllPostLogoutRedirectUris" @onclick=@(() => _showAllPLRedirectUris = !_showAllPLRedirectUris) checked="@_showAllPLRedirectUris">
+                                <label class="form-check-label" for="showAllPostLogoutRedirectUris">Show all created Post-logout Redirect Uris</label>
+                            </div>
+                            }
                         </div>
                     </div>
                 </div>
@@ -228,12 +236,5 @@
             await _applicationManager.UpdateAsync(_client, ApplicationDescriptor);
         }
         NavigationManager.NavigateTo("/");
-    }
-
-    private IEnumerable<(string Value, string Displayname)> GetFilteredScopes()
-    {
-        return _showAllScopes
-            ? ScopePermissions
-            : ScopePermissions.Where(x => ApplicationDescriptor.Permissions.Contains(x.Value));
     }
 }
