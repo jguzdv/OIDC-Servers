@@ -31,7 +31,7 @@
                             <h3 class="h4">Target token</h3>
                             @foreach (var destination in Destinations)
                             {
-                                <PermissionToggle Permissions="@SelectedTargetToken" Permission="@destination" DisplayName="@destination" />
+                                <PermissionToggle Permissions="@ScopeProperties.TargetToken" Permission="@destination" DisplayName="@destination" />
                             }
                         </div>
                     </div>
@@ -72,7 +72,6 @@
     private ScopeProperties? ScopeProperties { get; set; }
 
     private List<string> Destinations = new() { OpenIddictConstants.Destinations.AccessToken, OpenIddictConstants.Destinations.IdentityToken };
-    private HashSet<string> SelectedTargetToken = new();
 
     protected override async Task OnParametersSetAsync()
     {
@@ -100,13 +99,10 @@
             ScopeDescriptor = new();
             ScopeProperties = new ScopeProperties();
         }
-
-        SelectedTargetToken = new HashSet<string>(ScopeProperties.TargetToken);
     }
 
     private async Task SaveChanges()
     {
-        ScopeProperties.TargetToken = SelectedTargetToken.ToList();
         ScopeDescriptor.Properties[CustomProperties.PropertyName] = ScopeProperties.Serialize();
 
         if (_scope == null)
