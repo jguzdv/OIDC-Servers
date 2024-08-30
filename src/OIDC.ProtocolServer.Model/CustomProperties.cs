@@ -8,10 +8,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Model
     {
         public const string PropertyName = "jgu-props";
 
-        public JsonElement Serialize()
-        {
-            return JsonSerializer.SerializeToElement(this);
-        }
+        public abstract JsonElement Serialize();
 
         protected static T Deserialize<T>(JsonElement element)
             where T : CustomProperties, new()
@@ -27,6 +24,11 @@ namespace JGUZDV.OIDC.ProtocolServer.Model
 
     public class ApplicationProperties : CustomProperties
     {
+        public override JsonElement Serialize()
+        {
+            return JsonSerializer.SerializeToElement(this);
+        }
+
         public static ApplicationProperties DeserializeFromProperties(IDictionary<string, JsonElement> properties)
         {
             return properties.TryGetValue(PropertyName, out var json)
@@ -37,6 +39,11 @@ namespace JGUZDV.OIDC.ProtocolServer.Model
 
     public class ScopeProperties : CustomProperties
     {
+        public override JsonElement Serialize()
+        {
+            return JsonSerializer.SerializeToElement(this);
+        }
+
         public static ScopeProperties DeserializeFromProperties(IDictionary<string, JsonElement> properties)
         {
             return properties.TryGetValue(PropertyName, out var json) 

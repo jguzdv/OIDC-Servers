@@ -28,6 +28,14 @@ namespace JGUZDV.OIDC.ProtocolServer.Web.Controllers
             return View(auth);
         }
 
+        [HttpGet("~/self-mfa")]
+        [Authorize(AuthenticationSchemes = Constants.AuthenticationSchemes.MFA)]
+        public async Task<IActionResult> WhoAmIMFA()
+        {
+            var auth = await HttpContext.AuthenticateAsync();
+            return View(auth);
+        }
+
         public class ErrorModel
         {
             public string? RequestId { get; set; }

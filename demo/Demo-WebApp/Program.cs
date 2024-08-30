@@ -25,6 +25,7 @@ builder.Services.AddAuthentication(options =>
                 options.ResponseType = "code";
 
                 options.SaveTokens = true;
+                options.GetClaimsFromUserInfoEndpoint = true;
             })
             .AddCookie(options =>
             {
