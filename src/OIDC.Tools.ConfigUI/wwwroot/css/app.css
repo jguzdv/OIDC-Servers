@@ -85,7 +85,7 @@ h1:focus {
     }
 }
 
-/* Sidebar menu element additional stylings */
+/* Topbar menu element additional stylings */
 .nav-link {
     font-weight: 500;
     color: var(--bs-gray-dark);
