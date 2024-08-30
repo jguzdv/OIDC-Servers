@@ -51,6 +51,6 @@ namespace JGUZDV.OIDC.ProtocolServer.Model
                 : new();
         }
 
-        public List<string> TargetToken { get; set; } = new() { OpenIddictConstants.Destinations.AccessToken };
+        public HashSet<string> TargetToken { get; set; } = new() { OpenIddictConstants.Destinations.AccessToken };
     }
 }

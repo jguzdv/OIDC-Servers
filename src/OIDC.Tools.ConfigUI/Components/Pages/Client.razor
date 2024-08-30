@@ -1,5 +1,5 @@
 @page "/client"
-@page "/client/{clientId}"
+@page "/client/{*clientId}"
 @using JGUZDV.OIDC.ProtocolServer.Model
 @using OpenIddict.Abstractions
 
@@ -33,15 +33,22 @@
                         </div>
                         <div class="mb-3">
                             <div class="row">
-                                <div class="col-6">
-                                    <h3 class="h4">Granttypes</h3>
+                                <div class="col-4">
+                                    <h3 class="h4">Grant types</h3>
                                     @foreach (var permission in GrantTypePermissions)
                                     {
                                         <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
                                     }
                                 </div>
-                                <div class="col-6">
-                                    <h3 class="h4">ResponseTypes</h3>
+                                <div class="col-4">
+                                    <h3 class="h4">Endpoints</h3>
+                                    @foreach (var permission in EndpointPermissions)
+                                    {
+                                        <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
+                                    }
+                                </div>
+                                <div class="col-4">
+                                    <h3 class="h4">Response types</h3>
                                     @foreach (var permission in ResponseTypePermissions)
                                     {
                                         <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
@@ -50,21 +57,26 @@
                             </div>
                         </div>
                         <div class="mb-3">
-                            <h3 class="h4">Endpoints</h3>
-                            @foreach (var permission in EndpointPermissions)
+                            <h3>Scopes</h3>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="showAllScopes" @onclick=@(() => _showAllScopes = !_showAllScopes) checked="@_showAllScopes">
+                                <label class="form-check-label" for="showAllScopes">Show all scopes</label>
+                            </div>
+                            @foreach (var permission in ScopePermissions.Where(x => ApplicationDescriptor.Permissions.Contains(x.Value)).OrderBy(x => x.Displayname))
                             {
                                 <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
                             }
+                            @if (_showAllScopes)
+                            {
+                                @foreach (var permission in ScopePermissions.Where(x => !ApplicationDescriptor.Permissions.Contains(x.Value)).OrderBy(x => x.Displayname))
+                                {
+                                    <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
+                                }
+                            }
+
                         </div>
-                        <div class="mb-3">
-                            <h3 class="h4">Redirect Uris</h3>
-                            <UriList Items="@ApplicationDescriptor.RedirectUris" />
-                        </div>
-                        <div class="mb-3">
-                            <h3 class="h4">Post-logout Redirect Uris</h3>
-                            <UriList Items="@ApplicationDescriptor.PostLogoutRedirectUris" />
-                        </div>
-                        
+                    </div>
+                    <div class="col-lg-6">
                         <div class="mb-3">
                             <h3 class="h4">Requested claim types</h3>
                             <StringList Items="@ApplicationProperties.RequestedClaimTypes" />
@@ -78,13 +90,41 @@
                             <h3 class="h4">MFA</h3>
                             <MfaEditor Value="@ApplicationProperties.MFA" />
                         </div>
-                    </div>
-                    <div class="col-lg-6">
+
                         <div class="mb-3">
-                            <h3>Scopes</h3>
-                            @foreach (var permission in ScopePermissions)
+                            <h3 class="h4">Redirect Uris</h3>
+                            @{
+                                var uris = _showAllRedirectUris ? ApplicationDescriptor.RedirectUris.ToList() : ApplicationDescriptor.RedirectUris.Take(3).ToList();
+                            }
+                            <UriList Items="@uris" />
+                            @if (ApplicationDescriptor.RedirectUris.Count > 3)
                             {
-                                <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
+                                @if (!_showAllRedirectUris)
+                                {
+                                    <i class="fas fa-ellipsis-h"></i>
+                                }
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="showAllRedirectUris" @onclick=@(() => _showAllRedirectUris = !_showAllRedirectUris) checked="@_showAllRedirectUris">
+                                    <label class="form-check-label" for="showAllRedirectUris">Show all created Redirect Uris</label>
+                                </div>
+                            }
+                        </div>
+                        <div class="mb-3">
+                            <h3 class="h4">Post-logout Redirect Uris</h3>
+                            @{
+                                var pluris = _showAllPLRedirectUris ? ApplicationDescriptor.PostLogoutRedirectUris.ToList() : ApplicationDescriptor.PostLogoutRedirectUris.Take(3).ToList();
+                            }
+                            <UriList Items="@pluris" />
+                            @if (ApplicationDescriptor.PostLogoutRedirectUris.Count > 3)
+                            {
+                                @if (!_showAllPLRedirectUris)
+                                {
+                                    <i class="fas fa-ellipsis-h"></i>
+                                }
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="showAllPostLogoutRedirectUris" @onclick=@(() => _showAllPLRedirectUris = !_showAllPLRedirectUris) checked="@_showAllPLRedirectUris">
+                                    <label class="form-check-label" for="showAllPostLogoutRedirectUris">Show all created Post-logout Redirect Uris</label>
+                                </div>
                             }
                         </div>
                     </div>
@@ -104,6 +144,10 @@
 
     private object? _client;
     private bool _createNew;
+
+    private bool _showAllScopes;
+    private bool _showAllRedirectUris;
+    private bool _showAllPLRedirectUris;
 
     private OpenIddictApplicationDescriptor ApplicationDescriptor { get; set; } = new();
     private ApplicationProperties ApplicationProperties { get; set; } = new();
@@ -153,7 +197,7 @@
             var scopeDescriptor = new OpenIddictScopeDescriptor();
             await _scopeManager.PopulateAsync(scopeDescriptor, scope);
 
-            ScopePermissions.Add((OpenIddictConstants.Permissions.Prefixes.Scope + scopeDescriptor.Name, $"{scopeDescriptor.DisplayName} ({scopeDescriptor.Name})"));
+            ScopePermissions.Add((OpenIddictConstants.Permissions.Prefixes.Scope + scopeDescriptor.Name, $"{scopeDescriptor.Name} ({scopeDescriptor.DisplayName})"));
         }
     }
 
@@ -162,6 +206,7 @@
         await base.OnParametersSetAsync();
 
         _createNew = ClientId == null;
+        _showAllScopes = _createNew;
 
         if (!_createNew)
         {
