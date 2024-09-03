@@ -25,10 +25,10 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         {
             var result = await base.ValidateClientSecretAsync(secret, comparand, cancellationToken);
 
-            // The secret might be migrated from IdentityServer 4, which uses SHA256 hashing
+            // The secret might be migrated from IdentityServer 4, so we need to replicate their hashing before we check the secret.
             if (!result)
             {
-                // Base64 encode the sha1 hash of the secret
+                // Base64 encode the sha256 hash of the secret
                 var hashedSecret = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(secret)));
                 result = await base.ValidateClientSecretAsync(hashedSecret, comparand, cancellationToken);
             }
