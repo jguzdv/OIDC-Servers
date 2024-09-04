@@ -41,6 +41,12 @@ public class ConnectController(
         "mfa_auth_time"
     };
 
+    /// <summary>
+    /// This method gets called, when the user is redirected to the authorize endpoint.
+    /// It will check if the request is a valid OIDC request, load the application and scopes.
+    /// The user will be challenged if necessary and the consent will be checked.
+    /// If everything is fine, the user will be signed in.
+    /// </summary>
     [HttpGet("~/connect/authorize")]
     [HttpPost("~/connect/authorize")]
     [IgnoreAntiforgeryToken]
@@ -61,6 +67,7 @@ public class ConnectController(
         var userId = User.GetClaim(_options.Value.UserClaimType) ??
             throw new InvalidOperationException($"The user is missing the claim {_options.Value.UserClaimType}.");
 
+        
 
         // Retrieve the permanent authorizations associated with the user and the calling client application.
         var authorizations = await _authorizationManager.FindAsync(
@@ -76,6 +83,7 @@ public class ConnectController(
             return consentResult;
 
         
+
         // Create the claims-based identity that will be used by OpenIddict to generate tokens.
         var identity = await CreateIdentityAsync(
             oidcRequest, userId, application, scopes, authorizations, claimProviders, ct);
@@ -89,10 +97,10 @@ public class ConnectController(
         [FromServices] UserValidationProvider userValidation, 
         CancellationToken ct)
     {
-        var request = HttpContext.GetOpenIddictServerRequest() ??
+        var oidcRequest = HttpContext.GetOpenIddictServerRequest() ??
             throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
-        if (!request.IsAuthorizationCodeGrantType() && !request.IsRefreshTokenGrantType())
+        if (!oidcRequest.IsAuthorizationCodeGrantType() && !oidcRequest.IsRefreshTokenGrantType())
             throw new InvalidOperationException("The specified grant type is not supported.");
 
 
@@ -408,9 +416,12 @@ public class ConnectController(
             nameType: Claims.Name,
             roleType: Claims.Role);
 
-        foreach (var c in userClaims)
+        foreach (var claimTypeClaims in userClaims.GroupBy(x => x.Type))
         {
-            identity.SetClaim(c.Type, c.Value);
+            if (claimTypeClaims.Count() == 1)
+                identity.SetClaim(claimTypeClaims.Key, claimTypeClaims.First().Value);
+            else
+                identity.SetClaims(claimTypeClaims.Key, claimTypeClaims.Select(x => x.Value).ToImmutableArray());
         }
 
         foreach (var remoteClaim in User.Claims.Where(x => _remoteClaimTypes.Contains(x.Type)))
@@ -418,7 +429,7 @@ public class ConnectController(
             identity.AddClaim(remoteClaim.Type, remoteClaim.Value);
         }
 
-        // Note: in this sample, the granted scopes match the requested scope
+        // Note: The granted scopes match the requested scope
         // but you may want to allow the user to uncheck specific scopes.
         // For that, simply restrict the list of scopes before calling SetScopes.
         identity.SetScopes(requestedScopes.Select(x => x.Name));
@@ -439,6 +450,7 @@ public class ConnectController(
             .Where(x => x.Properties.TargetToken.Contains(Destinations.IdentityToken))
             .SelectMany(x => x.Properties.RequestedClaimTypes)
             .Concat(_remoteClaimTypes)
+            .Concat(application.Properties.RequestedClaimTypes)
             .ToHashSet();
 
         var authorizationId = await _authorizationManager.GetIdAsync(authorization, ct);
@@ -457,6 +469,7 @@ public class ConnectController(
             .Concat(application.Properties.RequestedClaimTypes)
             .ToHashSet();
     }
+
 
 
     private IActionResult? CheckIfConsentIsNeeded(OpenIddictRequest oidcRequest,
