@@ -1,8 +1,7 @@
 {
   "profiles": {
-    "Windows Machine": {
-      "commandName": "MsixPackage",
-      "nativeDebugging": false,
+    "OIDC.OpenIdDict.ConfigUI": {
+      "commandName": "Project",
       "commandLineArgs": "directorydb-1.zdv.uni-mainz.de ZDVDEV_OpenIdServer"
     }
   }

@@ -139,6 +139,10 @@ public class ConnectController(
                 roleType: Claims.Role);
 
         var scopes = await ScopeModel.FromScopeNamesAsync(_scopeManager, identity.GetScopes(), ct);
+        var resources = await _scopeManager.ListResourcesAsync(identity.GetScopes(), ct).ToListAsync(ct);
+
+        identity.SetResources(resources);
+
         var idClaims = scopes
             .Where(x => x.Properties.TargetToken.Contains(Destinations.IdentityToken))
             .SelectMany(x => x.Properties.RequestedClaimTypes)

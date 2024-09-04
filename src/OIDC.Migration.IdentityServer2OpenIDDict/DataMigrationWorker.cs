@@ -66,15 +66,16 @@ internal class DataMigrationWorker : IHostedService
     {
         var allRessources = await _resourceStore.GetAllResourcesAsync();
 
-        var resources = new List<IdentityServer4.Models.Resource>();
-        resources.AddRange(allRessources.IdentityResources);
-        resources.AddRange(allRessources.ApiResources);
-        resources.AddRange(allRessources.ApiScopes);
+        var scopeResources = new List<IdentityServer4.Models.Resource>();
+        scopeResources.AddRange(allRessources.IdentityResources);
+        scopeResources.AddRange(allRessources.ApiScopes);
 
-        foreach (var scope in resources)
+        foreach (var scope in scopeResources)
         {
             var targetScope = await _scopeManager.FindByNameAsync(scope.Name, ct);
-            var scopeDescriptor = CreateScopeDescriptor(scope);
+            var resources = await _resourceStore.FindApiResourcesByScopeNameAsync(new List<string> { scope.Name });
+
+            var scopeDescriptor = CreateScopeDescriptor(scope, resources);
 
             if (scopeDescriptor == null)
                 continue;
@@ -92,15 +93,21 @@ internal class DataMigrationWorker : IHostedService
         }
     }
 
-    private OpenIddictScopeDescriptor? CreateScopeDescriptor(IdentityServer4.Models.Resource srcScope)
+    private OpenIddictScopeDescriptor? CreateScopeDescriptor(
+        IdentityServer4.Models.Resource srcScope, 
+        IEnumerable<IdentityServer4.Models.ApiResource> resources)
     {
         var descriptor = new OpenIddictScopeDescriptor
         {
             Name = srcScope.Name,
             DisplayName = srcScope.DisplayName,
-            Description = srcScope.Description
+            Description = srcScope.Description,
         };
 
+        foreach(var resource in resources)
+        {
+            descriptor.Resources.Add(resource.Name);
+        }
 
         var props = new ScopeProperties()
         {
@@ -111,12 +118,6 @@ internal class DataMigrationWorker : IHostedService
         {
             props.RequestedClaimTypes.Add("zdv_sub");
             props.RequestedClaimTypes.Add("zdv_upn");
-        }
-
-
-        if (srcScope is IdentityServer4.Models.ApiResource apiResource)
-        {
-            descriptor.Resources.Add(apiResource.Name);
         }
 
         if (srcScope is IdentityServer4.Models.IdentityResource)
@@ -173,15 +174,17 @@ internal class DataMigrationWorker : IHostedService
     {
         try
         {
+            var validSecrets = srcClient.ClientSecrets
+                .Where(x => x.Expiration > DateTime.UtcNow);
             var hasSecret = srcClient.ClientSecrets.Any();
 
             var descriptor = new OpenIddictApplicationDescriptor
             {
                 ClientId = srcClient.ClientId,
-                ClientSecret = srcClient.ClientSecrets.FirstOrDefault()?.Value,
+                ClientSecret = validSecrets.FirstOrDefault()?.Value,
                 DisplayName = srcClient.ClientName,
                 ApplicationType = ApplicationTypes.Web,
-                ClientType = hasSecret ? ClientTypes.Confidential : ClientTypes.Public,
+                ClientType = validSecrets.Any() ? ClientTypes.Confidential : ClientTypes.Public,
                 ConsentType = ConsentTypes.Implicit,
                 Permissions =
                 {
@@ -218,10 +221,6 @@ internal class DataMigrationWorker : IHostedService
                         descriptor.Permissions.Add(Permissions.GrantTypes.ClientCredentials);
                         descriptor.Permissions.Add(Permissions.Endpoints.Token);
                         break;
-                    //case "refresh_token":
-                    //    descriptor.Permissions.Add(Permissions.GrantTypes.RefreshToken);
-                    //    descriptor.Permissions.Add(Permissions.Endpoints.Token);
-                    //    break;
                     default:
                         throw new NotSupportedException($"Grant type {grantType} is not supported");
                 }
@@ -290,7 +289,7 @@ internal class DataMigrationWorker : IHostedService
     {
         var result = new List<Uri>();
 
-        foreach (var uri in redirectUris.Where(x => x != "https:///signin-oidc"))
+        foreach (var uri in redirectUris.Where(x => x != "https:///signin-oidc" && x != "https:///"))
         {
             var replacedUri = ReplaceRegex(uri);
             try

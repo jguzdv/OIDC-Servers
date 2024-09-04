@@ -5,7 +5,7 @@ using JGUZDV.OIDC.ProtocolServer.Model;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
-namespace JGUZDV.OIDC.Tools.ConfigUI.Data
+namespace JGUZDV.OIDC.ConfigUI.Data
 {
     public class ConfigAppContext
     {
@@ -19,7 +19,7 @@ namespace JGUZDV.OIDC.Tools.ConfigUI.Data
         public string? ConnectionString { get; private set; }
 
         public IServiceProvider? ServiceProvider { get; }
-        
+
         public void SetConnection(string server, string database)
         {
             var builder = new SqlConnectionStringBuilder
@@ -35,12 +35,12 @@ namespace JGUZDV.OIDC.Tools.ConfigUI.Data
 
         public async Task EnsureConnection()
         {
-            
+
         }
 
         public Task Disconnect()
         {
-            
+
             ConnectionString = null;
 
             return Task.CompletedTask;
