@@ -20,7 +20,7 @@ builder.Services.AddAuthentication(options =>
             .AddOpenIdConnect(options =>
             {
                 options.Authority = "https://localhost:6001/";
-                options.ClientId = "sample-mfa";
+                options.ClientId = "sample";
                 options.ClientSecret = "P@ssword!1";
                 options.ResponseType = "code";
 
