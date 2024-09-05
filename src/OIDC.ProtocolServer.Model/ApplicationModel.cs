@@ -11,7 +11,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Model
         [property:NotNull] string? ConsentType,
         [property:NotNull] string? DisplayName,
 
-        ImmutableArray<string> Persmissions,
+        ImmutableArray<string> Permissions,
         ApplicationProperties Properties
         )
     {

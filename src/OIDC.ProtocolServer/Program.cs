@@ -290,6 +290,7 @@ internal static class Startup
                 OpenIddictConstants.Permissions.Endpoints.Token,
                 OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
                 OpenIddictConstants.Permissions.ResponseTypes.Code,
+                OpenIddictConstants.Permissions.GrantTypes.RefreshToken
             },
             ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
             Properties =
@@ -325,6 +326,7 @@ internal static class Startup
                 OpenIddictConstants.Permissions.Endpoints.Token,
                 OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
                 OpenIddictConstants.Permissions.ResponseTypes.Code,
+                OpenIddictConstants.Permissions.GrantTypes.RefreshToken
             },
             ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
             Properties =
@@ -377,7 +379,7 @@ internal static class Startup
                 CustomProperties.PropertyName,
                 (new ScopeProperties
                     {
-                        RequestedClaimTypes = ["umz_uuid"]
+                        RequestedClaimTypes = ["zdv_uuid"]
                     }).Serialize()
                 }
             }

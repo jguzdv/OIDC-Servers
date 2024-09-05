@@ -21,24 +21,31 @@ using OpenIddict.Server.AspNetCore;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 using Claim = System.Security.Claims.Claim;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace JGUZDV.OIDC.ProtocolServer.Web.Controllers;
 
 public class ConnectController(
     IOpenIddictAuthorizationManager authorizationManager,
+    IOpenIddictApplicationManager applicationManager,
     IOpenIddictScopeManager scopeManager,
+    IEnumerable<IClaimProvider> claimProviders,
     TimeProvider timeProvider,
     IOptions<ProtocolServerOptions> options) : Controller
 {
     private readonly IOpenIddictAuthorizationManager _authorizationManager = authorizationManager;
+    private readonly IOpenIddictApplicationManager _applicationManager = applicationManager;
     private readonly IOpenIddictScopeManager _scopeManager = scopeManager;
+
+    private readonly IEnumerable<IClaimProvider> _claimProviders = claimProviders;
+    
     private readonly TimeProvider _timeProvider = timeProvider;
     private readonly IOptions<ProtocolServerOptions> _options = options;
 
     private readonly ISet<string> _remoteClaimTypes = new HashSet<string>()
     {
         Claims.AuthenticationMethodReference,
-        "mfa_auth_time"
+        Constants.ClaimTypes.MFAAuthTime
     };
 
     /// <summary>
@@ -50,50 +57,51 @@ public class ConnectController(
     [HttpGet("~/connect/authorize")]
     [HttpPost("~/connect/authorize")]
     [IgnoreAntiforgeryToken]
-    public async Task<IActionResult> Authorize(
-        [FromServices] IOpenIddictApplicationManager applicationManager,
-        [FromServices] IEnumerable<IClaimProvider> claimProviders,
-        CancellationToken ct)
+    public async Task<IActionResult> Authorize(CancellationToken ct)
     {
+        // Retrieve the OpenID Connect request from the HttpContext - this is provided by OpenIddict
         var oidcRequest = HttpContext.GetOpenIddictServerRequest() ??
             throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
-        var application = await ApplicationModel.FromClientIdAsync(applicationManager, oidcRequest.ClientId!, ct);
-        var scopes = await ScopeModel.FromScopeNamesAsync(_scopeManager, oidcRequest.GetScopes(), ct);
-        
-        if ((await CheckIfChallengeIsNeededAsync(oidcRequest, application, scopes)) is IActionResult challengeResult)
+        // Retrieve the application and scopes from the request
+        var (application, scopes) = await GetApplicationAndScopesAsync(oidcRequest.ClientId!, oidcRequest.GetScopes(), ct);
+
+        // Check if the user needs to be challenged, if this method returns an action result, we'll return it.
+        var challengeResult = await GetChallengeIfNeededAsync(oidcRequest, application, scopes);
+        if (challengeResult is not null)
+        {
             return challengeResult;
+        }
 
-        var userId = User.GetClaim(_options.Value.UserClaimType) ??
-            throw new InvalidOperationException($"The user is missing the claim {_options.Value.UserClaimType}.");
 
-        
+        // If we got this far, the user is authenticated and we can retrieve the user id from the claims.
+        // The claims here are "remote" to the application, since they are provided by another authentication provider (see Program.cs).
+        var authenticatedUser = User;
+        var subject = authenticatedUser.GetClaim(_options.Value.SubjectClaimType) ??
+            throw new InvalidOperationException($"The user is missing the claim {_options.Value.SubjectClaimType}.");
 
-        // Retrieve the permanent authorizations associated with the user and the calling client application.
-        var authorizations = await _authorizationManager.FindAsync(
-                subject: userId,
-                client: application.Id,
-                status: Statuses.Valid,
-                type: AuthorizationTypes.Permanent,
-                scopes: oidcRequest.GetScopes(),
-                cancellationToken: ct
-            ).ToListAsync(ct);
 
-        if (CheckIfConsentIsNeeded(oidcRequest, application, authorizations) is IActionResult consentResult)
+        // We might have application that are configured to ask for user consent. If this function returns an action result, we'll return it.
+        var consentResult = await GetConsentIfNeededAsync(oidcRequest, application, oidcRequest.GetScopes(), subject, ct);
+        if (consentResult is not null)
+        {
             return consentResult;
+        }
 
         
-
         // Create the claims-based identity that will be used by OpenIddict to generate tokens.
-        var identity = await CreateIdentityAsync(
-            oidcRequest, userId, application, scopes, authorizations, claimProviders, ct);
+        var identity = await CreateIdentityAsync(authenticatedUser, application, scopes, ct);
+
+        // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
         return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }
 
 
+    /// <summary>
+    /// 
+    /// </summary>
     [HttpPost("~/connect/token"), IgnoreAntiforgeryToken, Produces("application/json")]
     public async Task<IActionResult> Exchange(
-        [FromServices] IEnumerable<IClaimProvider> claimProviders,
         [FromServices] UserValidationProvider userValidation, 
         CancellationToken ct)
     {
@@ -117,8 +125,8 @@ public class ConnectController(
                 }));
         }
 
-        var user = authResult.Principal;
-        if (!userValidation.IsUserActive(user))
+        var authenticatedUser = authResult.Principal;
+        if (!userValidation.IsUserActive(authenticatedUser))
         {
             return Forbid(
                 authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
@@ -130,7 +138,7 @@ public class ConnectController(
         }
 
         // check if the password has changed _after_ refresh_token issuance
-        if (userValidation.LastPasswordChange(user) > User.GetCreationDate())
+        if (userValidation.LastPasswordChange(authenticatedUser) > authenticatedUser.GetCreationDate())
         {
             return Forbid(
                 authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
@@ -141,41 +149,29 @@ public class ConnectController(
                 }));
         }
 
-        var identity = new ClaimsIdentity(user.Claims,
-                authenticationType: TokenValidationParameters.DefaultAuthenticationType,
-                nameType: Claims.Name,
-                roleType: Claims.Role);
 
-        var scopes = await ScopeModel.FromScopeNamesAsync(_scopeManager, identity.GetScopes(), ct);
-        var resources = await _scopeManager.ListResourcesAsync(identity.GetScopes(), ct).ToListAsync(ct);
-
-        identity.SetResources(resources);
-
-        var idClaims = scopes
-            .Where(x => x.Properties.TargetToken.Contains(Destinations.IdentityToken))
-            .SelectMany(x => x.Properties.RequestedClaimTypes)
-            .Concat(_remoteClaimTypes)
-            .ToHashSet();
-
-        var userClaims = new List<(string Type, string Value)>();
-        foreach (var cp in claimProviders)
+        // If we're in a auth_code flow, we'll just return the user as is, since it's data should be fresh.
+        if (oidcRequest.IsAuthorizationCodeGrantType())
         {
-            var claims = await cp.GetClaimsAsync(user, idClaims.Distinct(), ct);
-            userClaims.AddRange(claims);
+            return SignIn(authenticatedUser, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
-        foreach (var claimTypeClaims in userClaims.GroupBy(x => x.Type))
+        // If we're in a refresh_token flow, we'll need to refresh the user data.
+        if (oidcRequest.IsRefreshTokenGrantType())
         {
-            if (claimTypeClaims.Count() == 1)
-                identity.SetClaim(claimTypeClaims.Key, claimTypeClaims.First().Value);
-            else
-                identity.SetClaims(claimTypeClaims.Key, claimTypeClaims.Select(x => x.Value).ToImmutableArray());
+            // Retrieve the application and scopes from the request
+            var (application, scopes) = await GetApplicationAndScopesAsync(oidcRequest.ClientId!, authenticatedUser.GetScopes(), ct);
+
+            // Recreate the identity
+            var identity = await CreateIdentityAsync(authenticatedUser, application, scopes, ct);
+
+            // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
+            return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
-        identity.SetDestinations(x => GetDestinations(x, idClaims));
 
-        // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
-        return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        // This should never be reached, as it's checked at the beginning of the method.
+        throw new InvalidOperationException("The specified grant type is not supported.");
     }
 
 
@@ -293,7 +289,25 @@ public class ConnectController(
     }
 
 
-    private async Task<IActionResult?> CheckIfChallengeIsNeededAsync(
+    private async Task<(ApplicationModel application, ImmutableArray<ScopeModel> scopes)> GetApplicationAndScopesAsync(string clientId, ImmutableArray<string> scopeNames, CancellationToken ct)
+    {
+        var application = await ApplicationModel.FromClientIdAsync(_applicationManager, clientId, ct);
+        var scopes = await ScopeModel.FromScopeNamesAsync(_scopeManager, scopeNames, ct);
+
+        if(scopeNames.Contains(Scopes.OfflineAccess))
+        {
+            scopes = scopes.Add(new ScopeModel(Scopes.OfflineAccess, Scopes.OfflineAccess, [], new()));
+        }
+
+        return (application, scopes);
+    }
+
+
+    /// <summary>
+    /// Checks if a challenge or mfa-challange is needed and creates a challenge result if necessary.
+    /// If this method returns null, no challange is needed.
+    /// </summary>
+    private async Task<IActionResult?> GetChallengeIfNeededAsync(
         OpenIddictRequest oidcRequest,
         ApplicationModel application, 
         ImmutableArray<ScopeModel> scopes)
@@ -395,71 +409,83 @@ public class ConnectController(
         }
     }
 
-    private async Task<ClaimsIdentity> CreateIdentityAsync(
-        OpenIddictRequest oidcRequest, string userId,
-        ApplicationModel application, IEnumerable<ScopeModel> requestedScopes,
-        List<object> authorizations, IEnumerable<IClaimProvider> claimProviders,
+    private async Task<ClaimsIdentity> CreateIdentityAsync(ClaimsPrincipal subject,
+        ApplicationModel application, IEnumerable<ScopeModel> requestedScopes, 
         CancellationToken ct)
     {
-        var requestedClaims = CollectRequestedClaimTypes(application, requestedScopes);
+        // Determine, which claims are requested by the client application and to which token they should be added.
+        // Also collect "resources" (=> Audience) that are requested by the client application.
+        var idTokenClaims = new HashSet<string>(application.Properties.RequestedClaimTypes);
+        var accessTokenClaims = new HashSet<string>();
+        var resources = new HashSet<string>();
 
-        var userClaims = new List<(string Type, string Value)>();
-        foreach (var cp in claimProviders)
+        foreach (var scope in requestedScopes)
         {
-            var claims = await cp.GetClaimsAsync(User, requestedClaims.Distinct(), ct);
-            userClaims.AddRange(claims);
+            if (scope.Properties.TargetToken.Contains(Destinations.IdentityToken))
+                idTokenClaims.UnionWith(scope.Properties.RequestedClaimTypes);
+
+            //TODO: if (scope.Properties.TargetToken.Contains(Destinations.AccessToken))
+            accessTokenClaims.UnionWith(scope.Properties.RequestedClaimTypes);
+
+            resources.UnionWith(scope.Resources);
         }
 
+        // Load all claims that are requested by the client application
+        var requestedClaims = new HashSet<string>(idTokenClaims.Concat(accessTokenClaims));
+        var subjectClaims = await LoadSubjectClaims(subject, requestedClaims, ct);
 
+
+        // Create the claims-based identity that will be used by OpenIddict to generate tokens.
         var identity = new ClaimsIdentity(
             authenticationType: TokenValidationParameters.DefaultAuthenticationType,
             nameType: Claims.Name,
             roleType: Claims.Role);
 
-        foreach (var claimTypeClaims in userClaims.GroupBy(x => x.Type))
-        {
-            if (claimTypeClaims.Count() == 1)
-                identity.SetClaim(claimTypeClaims.Key, claimTypeClaims.First().Value);
-            else
-                identity.SetClaims(claimTypeClaims.Key, claimTypeClaims.Select(x => x.Value).ToImmutableArray());
-        }
-
-        foreach (var remoteClaim in User.Claims.Where(x => _remoteClaimTypes.Contains(x.Type)))
-        {
-            identity.AddClaim(remoteClaim.Type, remoteClaim.Value);
-        }
-
+        // Add scope and audience claims
         // Note: The granted scopes match the requested scope
         // but you may want to allow the user to uncheck specific scopes.
         // For that, simply restrict the list of scopes before calling SetScopes.
         identity.SetScopes(requestedScopes.Select(x => x.Name));
         identity.SetResources(requestedScopes.SelectMany(x => x.Resources));
 
-        // Automatically create a permanent authorization to avoid requiring explicit consent
-        // for future authorization or token requests containing the same scopes.
-        var authorization = authorizations.LastOrDefault();
-        authorization ??= await _authorizationManager.CreateAsync(
-            identity: identity,
-            subject: userId,
-            client: application.Id,
-            type: AuthorizationTypes.Permanent,
-            scopes: oidcRequest.GetScopes(),
-            cancellationToken: ct);
 
-        var idTokenClaims = requestedScopes
-            .Where(x => x.Properties.TargetToken.Contains(Destinations.IdentityToken))
-            .SelectMany(x => x.Properties.RequestedClaimTypes)
-            .Concat(_remoteClaimTypes)
-            .Concat(application.Properties.RequestedClaimTypes)
-            .ToHashSet();
+        // Copy claims from the remote identity to the new identity
+        foreach (var remoteClaim in User.Claims.Where(x => _remoteClaimTypes.Contains(x.Type)))
+        {
+            identity.AddClaim(remoteClaim.Type, remoteClaim.Value);
+        }
 
-        var authorizationId = await _authorizationManager.GetIdAsync(authorization, ct);
-        identity.SetAuthorizationId(authorizationId);
+
+        // Claims may be single value or multi value. So we group by type and add them accordingly.
+        foreach (var claimTypeClaims in subjectClaims.GroupBy(x => x.Type, StringComparer.OrdinalIgnoreCase))
+        {
+            if (claimTypeClaims.Count() == 1)
+            {
+                identity.SetClaim(claimTypeClaims.Key, claimTypeClaims.First().Value);
+            }
+            else
+            {
+                identity.SetClaims(claimTypeClaims.Key, claimTypeClaims.Select(x => x.Value).ToImmutableArray());
+            }
+        }
+
+        // Currently _all_ claims will be added to the access token and _some_ claims will be added to the id token.
         identity.SetDestinations(c => GetDestinations(c, idTokenClaims));
 
         return identity;
     }
 
+    private async Task<List<(string Type, string Value)>> LoadSubjectClaims(ClaimsPrincipal subject, HashSet<string> requestedClaims, CancellationToken ct)
+    {
+        var userClaims = new List<(string Type, string Value)>();
+        foreach (var cp in _claimProviders)
+        {
+            var claims = await cp.GetClaimsAsync(subject, requestedClaims, ct);
+            userClaims.AddRange(claims);
+        }
+
+        return userClaims;
+    }
 
     private static HashSet<string> CollectRequestedClaimTypes(ApplicationModel application, 
         IEnumerable<ScopeModel> requestedScopes)
@@ -472,9 +498,19 @@ public class ConnectController(
 
 
 
-    private IActionResult? CheckIfConsentIsNeeded(OpenIddictRequest oidcRequest,
-        ApplicationModel application, List<object> authorizations)
+    private async Task<IActionResult?> GetConsentIfNeededAsync(OpenIddictRequest oidcRequest,
+        ApplicationModel application, ImmutableArray<string> scopes, string subject, CancellationToken ct)
     {
+        // Retrieve the permanent authorizations associated with the user and the calling client application.
+        var authorizations = await _authorizationManager.FindAsync(
+                subject: subject,
+                client: application.Id,
+                status: Statuses.Valid,
+                type: AuthorizationTypes.Permanent,
+                scopes: oidcRequest.GetScopes(),
+                cancellationToken: ct
+            ).ToListAsync(ct);
+
         switch (application.ConsentType)
         {
             // If the consent is external (e.g when authorizations are granted by a sysadmin),

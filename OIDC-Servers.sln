@@ -25,7 +25,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OIDC.Migration.IdentityServ
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OIDC.ProtocolServer.Model", "src\OIDC.ProtocolServer.Model\OIDC.ProtocolServer.Model.csproj", "{A3585B1E-7CEF-4DD3-BAF3-459E1AE64C25}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OIDC.OpenIdDict.ConfigUI", "src\OIDC.OpenIdDict.ConfigUI\OIDC.OpenIdDict.ConfigUI.csproj", "{16569A52-7F73-42F2-8917-CB377D52C053}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OIDC.OpenIdDict.ConfigUI", "src\OIDC.OpenIdDict.ConfigUI\OIDC.OpenIdDict.ConfigUI.csproj", "{16569A52-7F73-42F2-8917-CB377D52C053}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

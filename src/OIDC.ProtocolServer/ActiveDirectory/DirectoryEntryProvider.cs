@@ -25,22 +25,22 @@ namespace JGUZDV.OIDC.ProtocolServer.ActiveDirectory
 
         public DirectoryEntry GetUserEntryFromPrincipal(ClaimsPrincipal principal, params string[] propertiesToLoad)
         {
-            var userIdentifier = principal.FindFirstValue(_options.Value.UserClaimType) ?? principal.FindFirstValue(Claims.Subject);
+            var userIdentifier = principal.FindFirstValue(_options.Value.SubjectClaimType) ?? principal.FindFirstValue(Claims.Subject);
 
             if (string.IsNullOrEmpty(userIdentifier))
             {
                 _logger.LogDebug("No 'sub' or '{claimType}' claim found in principal. Listing principal claims: {claims}",
-                    _options.Value.UserClaimType,
+                    _options.Value.SubjectClaimType,
                     string.Join("\r\n", principal.Claims.Select(c => $"{c.Type}: {c.Value}"))
                     );
-                throw new InvalidOperationException($"No subject or {_options.Value.UserClaimType} claim found in principal.");
+                throw new InvalidOperationException($"No subject or {_options.Value.SubjectClaimType} claim found in principal.");
             }
 
             var (isBindable, bindPath) = UserEntryHelper.IsBindableIdentity(userIdentifier);
             if (!isBindable)
             {
                 _logger.LogDebug("No 'sub' or '{claimType}' claim found in principal. Listing principal claims: {claims}",
-                    _options.Value.UserClaimType,
+                    _options.Value.SubjectClaimType,
                     string.Join("\r\n", principal.Claims.Select(c => $"{c.Type}: {c.Value}"))
                     );
 

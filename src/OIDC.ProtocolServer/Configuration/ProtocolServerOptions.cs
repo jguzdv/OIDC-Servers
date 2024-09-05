@@ -13,7 +13,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Configuration
         public string? LdapServer { get; set; }
 
         [NotNull]
-        public string? UserClaimType { get; set; }
+        public string? SubjectClaimType { get; set; }
         public string DefaultConsentType { get; set; } = ConsentTypes.Implicit;
 
         public Dictionary<string, string> Properties { get; set; } = new();
@@ -28,9 +28,9 @@ namespace JGUZDV.OIDC.ProtocolServer.Configuration
                 yield return new("The LDAP server needs to be set.", [nameof(LdapServer)]);
             }
 
-            if (string.IsNullOrWhiteSpace(UserClaimType))
+            if (string.IsNullOrWhiteSpace(SubjectClaimType))
             {
-                yield return new("The user claim type needs to be set.", [nameof(UserClaimType)]);
+                yield return new("The user claim type needs to be set.", [nameof(SubjectClaimType)]);
             }
         }
     }
