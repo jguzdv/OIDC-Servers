@@ -216,6 +216,9 @@ public class ConnectController(
             nameType: Claims.Name,
             roleType: Claims.Role);
 
+        identity.SetClaim(Claims.Subject, application.ClientId);
+        identity.SetClaim(Claims.Name, application.DisplayName);
+
         identity.SetScopes(requestedScopes);
         identity.SetResources(scopes.SelectMany(x => x.Resources));
 
