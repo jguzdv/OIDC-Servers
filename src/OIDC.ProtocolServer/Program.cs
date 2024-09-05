@@ -126,7 +126,7 @@ services.AddOpenIddict()
         options
             .AllowAuthorizationCodeFlow()
             .AllowRefreshTokenFlow()
-            .AllowDeviceCodeFlow()
+            .AllowClientCredentialsFlow()
             .AllowImplicitFlow()
             .AllowHybridFlow();
 

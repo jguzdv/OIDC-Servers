@@ -22,6 +22,8 @@ using static OpenIddict.Abstractions.OpenIddictConstants;
 
 using Claim = System.Security.Claims.Claim;
 using static System.Net.Mime.MediaTypeNames;
+using Microsoft.AspNetCore.Identity;
+using System.Security.Principal;
 
 namespace JGUZDV.OIDC.ProtocolServer.Web.Controllers;
 
@@ -30,6 +32,7 @@ public class ConnectController(
     IOpenIddictApplicationManager applicationManager,
     IOpenIddictScopeManager scopeManager,
     IEnumerable<IClaimProvider> claimProviders,
+    UserValidationProvider userValidation,
     TimeProvider timeProvider,
     IOptions<ProtocolServerOptions> options) : Controller
 {
@@ -38,15 +41,19 @@ public class ConnectController(
     private readonly IOpenIddictScopeManager _scopeManager = scopeManager;
 
     private readonly IEnumerable<IClaimProvider> _claimProviders = claimProviders;
-    
+    private readonly UserValidationProvider _userValidation = userValidation;
     private readonly TimeProvider _timeProvider = timeProvider;
     private readonly IOptions<ProtocolServerOptions> _options = options;
 
+    //TODO: would probably be better to have this in the options
     private readonly ISet<string> _remoteClaimTypes = new HashSet<string>()
     {
         Claims.AuthenticationMethodReference,
         Constants.ClaimTypes.MFAAuthTime
     };
+
+    private static readonly IEnumerable<string> BothTokens = [Destinations.IdentityToken, Destinations.AccessToken];
+    private static readonly IEnumerable<string> AccessToken = [Destinations.AccessToken];
 
     /// <summary>
     /// This method gets called, when the user is redirected to the authorize endpoint.
@@ -101,17 +108,29 @@ public class ConnectController(
     /// 
     /// </summary>
     [HttpPost("~/connect/token"), IgnoreAntiforgeryToken, Produces("application/json")]
-    public async Task<IActionResult> Exchange(
-        [FromServices] UserValidationProvider userValidation, 
-        CancellationToken ct)
+    public async Task<IActionResult> Exchange(CancellationToken ct)
     {
         var oidcRequest = HttpContext.GetOpenIddictServerRequest() ??
             throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
-        if (!oidcRequest.IsAuthorizationCodeGrantType() && !oidcRequest.IsRefreshTokenGrantType())
-            throw new InvalidOperationException("The specified grant type is not supported.");
+        if (oidcRequest.IsAuthorizationCodeGrantType() || oidcRequest.IsRefreshTokenGrantType())
+        {
+            return await HandleAuthCodeOrRefreshTokenExchange(oidcRequest, ct);
+        }
 
+        if (oidcRequest.IsClientCredentialsGrantType())
+        {
+            return await HandleClientCredentialFlow(oidcRequest, ct);
+        }
+        
+        throw new InvalidOperationException("The specified grant type is not supported.");
+    }
 
+    /// <summary>
+    /// This handles the auth_code flow and the refresh_token flow token generation.
+    /// </summary>
+    private async Task<IActionResult> HandleAuthCodeOrRefreshTokenExchange(OpenIddictRequest oidcRequest, CancellationToken ct)
+    {
         // Retrieve the claims principal stored in the authorization code/refresh token.
         var authResult = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         if (!authResult.Succeeded)
@@ -126,7 +145,7 @@ public class ConnectController(
         }
 
         var authenticatedUser = authResult.Principal;
-        if (!userValidation.IsUserActive(authenticatedUser))
+        if (!_userValidation.IsUserActive(authenticatedUser))
         {
             return Forbid(
                 authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
@@ -138,7 +157,7 @@ public class ConnectController(
         }
 
         // check if the password has changed _after_ refresh_token issuance
-        if (userValidation.LastPasswordChange(authenticatedUser) > authenticatedUser.GetCreationDate())
+        if (_userValidation.LastPasswordChange(authenticatedUser) > authenticatedUser.GetCreationDate())
         {
             return Forbid(
                 authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
@@ -169,9 +188,42 @@ public class ConnectController(
             return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
-
-        // This should never be reached, as it's checked at the beginning of the method.
+        // This should never be reached, as it's checked before this method is called.
         throw new InvalidOperationException("The specified grant type is not supported.");
+    }
+
+
+    /// <summary>
+    /// This handles the client_credentials flow, which is a machine-to-machine flow.
+    /// Obviously user claims will not be loaded here.
+    /// </summary>
+    private async Task<IActionResult> HandleClientCredentialFlow(OpenIddictRequest oidcRequest, CancellationToken ct)
+    {
+        var requestedScopes = oidcRequest.GetScopes();
+        var (application, scopes) = await GetApplicationAndScopesAsync(oidcRequest.ClientId!, requestedScopes, ct);
+
+        // Collect all static claims from application and scopes.
+        var clientClaims = application.Properties.StaticClaims
+            .Select(x => (x.Type, x.Value))
+            .ToList();
+
+        var scopeClaims = scopes.SelectMany(x => x.Properties.StaticClaims)
+            .Select(x => (x.Type, x.Value))
+            .ToList();
+
+        var identity = new ClaimsIdentity(
+            authenticationType: TokenValidationParameters.DefaultAuthenticationType,
+            nameType: Claims.Name,
+            roleType: Claims.Role);
+
+        identity.SetScopes(requestedScopes);
+        identity.SetResources(scopes.SelectMany(x => x.Resources));
+
+        SetClaims(identity, clientClaims.Union(scopeClaims));
+        identity.SetDestinations(x => AccessToken);
+
+        // Returning a SignInResult will ask OpenIddict to issue the appropriate access token.
+        return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }
 
 
@@ -278,10 +330,6 @@ public class ConnectController(
 
 
     // --- Private methods --- //
-
-    private static readonly IEnumerable<string> BothTokens = [Destinations.IdentityToken, Destinations.AccessToken];
-    private static readonly IEnumerable<string> AccessToken = [Destinations.AccessToken];
-
     private static IEnumerable<string> GetDestinations(Claim claim, HashSet<string> idTokenClaims)
     {
         return idTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase) 
@@ -455,9 +503,18 @@ public class ConnectController(
             identity.AddClaim(remoteClaim.Type, remoteClaim.Value);
         }
 
+        SetClaims(identity, subjectClaims);
 
+        // Currently _all_ claims will be added to the access token and _some_ claims will be added to the id token.
+        identity.SetDestinations(c => GetDestinations(c, idTokenClaims));
+
+        return identity;
+    }
+
+    private static void SetClaims(ClaimsIdentity identity, IEnumerable<(string Type, string Value)> claims)
+    {
         // Claims may be single value or multi value. So we group by type and add them accordingly.
-        foreach (var claimTypeClaims in subjectClaims.GroupBy(x => x.Type, StringComparer.OrdinalIgnoreCase))
+        foreach (var claimTypeClaims in claims.GroupBy(x => x.Type, StringComparer.OrdinalIgnoreCase))
         {
             if (claimTypeClaims.Count() == 1)
             {
@@ -465,14 +522,9 @@ public class ConnectController(
             }
             else
             {
-                identity.SetClaims(claimTypeClaims.Key, claimTypeClaims.Select(x => x.Value).ToImmutableArray());
+                identity.SetClaims(claimTypeClaims.Key, claimTypeClaims.Select(x => x.Value).Distinct().ToImmutableArray());
             }
         }
-
-        // Currently _all_ claims will be added to the access token and _some_ claims will be added to the id token.
-        identity.SetDestinations(c => GetDestinations(c, idTokenClaims));
-
-        return identity;
     }
 
     private async Task<List<(string Type, string Value)>> LoadSubjectClaims(ClaimsPrincipal subject, HashSet<string> requestedClaims, CancellationToken ct)
