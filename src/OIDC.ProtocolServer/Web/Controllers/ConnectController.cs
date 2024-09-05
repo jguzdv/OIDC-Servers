@@ -145,6 +145,8 @@ public class ConnectController(
         }
 
         var authenticatedUser = authResult.Principal;
+
+        // Check if the user account is still active
         if (!_userValidation.IsUserActive(authenticatedUser))
         {
             return Forbid(
@@ -176,7 +178,7 @@ public class ConnectController(
         }
 
         // If we're in a refresh_token flow, we'll need to refresh the user data.
-        if (oidcRequest.IsRefreshTokenGrantType())
+        if(oidcRequest.IsRefreshTokenGrantType())
         {
             // Retrieve the application and scopes from the request
             var (application, scopes) = await GetApplicationAndScopesAsync(oidcRequest.ClientId!, authenticatedUser.GetScopes(), ct);
@@ -188,7 +190,7 @@ public class ConnectController(
             return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
-        // This should never be reached, as it's checked before this method is called.
+        // This should never be reached, as it's checked before this method is called, nevertheless, errors happen and we'll throw, if we get here.
         throw new InvalidOperationException("The specified grant type is not supported.");
     }
 
@@ -199,6 +201,7 @@ public class ConnectController(
     /// </summary>
     private async Task<IActionResult> HandleClientCredentialFlow(OpenIddictRequest oidcRequest, CancellationToken ct)
     {
+        // OpenIddict will already have checked if client_id and client_secret is correct. So no explicit authentication is needed here.
         var requestedScopes = oidcRequest.GetScopes();
         var (application, scopes) = await GetApplicationAndScopesAsync(oidcRequest.ClientId!, requestedScopes, ct);
 
@@ -211,17 +214,22 @@ public class ConnectController(
             .Select(x => (x.Type, x.Value))
             .ToList();
 
+
         var identity = new ClaimsIdentity(
             authenticationType: TokenValidationParameters.DefaultAuthenticationType,
             nameType: Claims.Name,
             roleType: Claims.Role);
 
+
+        // Add a subject and a name for good measure
         identity.SetClaim(Claims.Subject, application.ClientId);
         identity.SetClaim(Claims.Name, application.DisplayName);
 
+        // Add the requested scopes and resources
         identity.SetScopes(requestedScopes);
         identity.SetResources(scopes.SelectMany(x => x.Resources));
 
+        // Add all static claims and set their destination to the access token
         SetClaims(identity, clientClaims.Union(scopeClaims));
         identity.SetDestinations(x => AccessToken);
 
