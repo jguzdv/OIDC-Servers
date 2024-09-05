@@ -9,6 +9,11 @@ JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.ConfigureKestrel(opt =>
+{
+    opt.Limits.MaxRequestHeadersTotalSize = 4 * opt.Limits.MaxRequestHeadersTotalSize;
+});
+
 // Add services to the container.
 builder.Services.AddRazorPages();
 
@@ -25,7 +30,10 @@ builder.Services.AddAuthentication(options =>
                 options.ResponseType = "code";
 
                 options.SaveTokens = true;
-                options.GetClaimsFromUserInfoEndpoint = true;
+                options.GetClaimsFromUserInfoEndpoint = false;
+                options.Scope.Clear();
+                options.Scope.Add("openid");
+                options.Scope.Add("offline_access");
             })
             .AddCookie(options =>
             {
