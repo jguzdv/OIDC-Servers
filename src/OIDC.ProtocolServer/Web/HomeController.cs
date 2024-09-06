@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace JGUZDV.OIDC.ProtocolServer.Web.Controllers
+namespace JGUZDV.OIDC.ProtocolServer.Web
 {
     public class HomeController : Controller
     {

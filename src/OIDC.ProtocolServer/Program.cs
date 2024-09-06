@@ -9,6 +9,7 @@ using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
 using JGUZDV.OIDC.ProtocolServer.Model;
 using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
+using JGUZDV.OIDC.ProtocolServer.Web;
 using JGUZDV.OpenIddict.KeyManager.Configuration;
 
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -19,6 +20,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
 
 using OpenIddict.Abstractions;
+using OpenIddict.Server.AspNetCore;
 
 using Constants = JGUZDV.OIDC.ProtocolServer.Constants;
 using OpenIddictConstants = OpenIddict.Abstractions.OpenIddictConstants;
@@ -180,6 +182,9 @@ services
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
+services.AddScoped<OIDCContextProvider>();
+services.AddScoped<IdentityProvider>();
+
 services.AddSingleton<DirectoryEntryProvider>();
 services.AddPropertyReader();
 services.AddClaimProvider();
@@ -241,21 +246,33 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// This is mainly the HomeController, that will render some views.
 app.MapControllers();
 
+// Endpoints triggering login and logout
+var authn = app.MapGroup("/authn");
+authn.MapGet("/login", Endpoints.Authentication.Challenge);
+authn.MapGet("/logout", Endpoints.Authentication.SignOut);
 
 
-#if DEBUG
-app.MapGet("/test", async (IOptions<DataProtectionOptions> opt) =>
-{
-    var thing = opt.Value.ApplicationDiscriminator;
-    //var thing = discriminator.Discriminator;
+// OIDC Endpoints
+var connect = app.MapGroup("/connect");
+connect.MapMethods("/authorize", [HttpMethods.Get, HttpMethods.Post], Endpoints.OIDC.Authorize)
+    .DisableAntiforgery()
+    .Produces(200, contentType: "application/json");
 
-    return JsonSerializer.Serialize(thing);
-});
+connect.MapPost("/token", Endpoints.OIDC.Exchange)
+    .DisableAntiforgery();
 
-await Startup.InitializeSamples(app);
-#endif
+connect.MapMethods("/userinfo", [HttpMethods.Get, HttpMethods.Post], Endpoints.OIDC.UserInfo)
+    .RequireAuthorization(p => {
+        p.AuthenticationSchemes = [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme];
+        p.RequireAuthenticatedUser();
+    })
+    .Produces(200, contentType: "application/json");
+
+//connect.MapPost("/endsession", Endpoints.OIDC.EndSession);
+
 
 app.Run();
 
