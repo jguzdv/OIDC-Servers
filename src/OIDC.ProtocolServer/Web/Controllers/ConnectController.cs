@@ -5,8 +5,8 @@ using System.Security.Claims;
 using JGUZDV.OIDC.ProtocolServer.ActiveDirectory;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
-using JGUZDV.OIDC.ProtocolServer.Model;
 using JGUZDV.OIDC.ProtocolServer.Extensions;
+using JGUZDV.OIDC.ProtocolServer.Model;
 
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
@@ -21,9 +21,6 @@ using OpenIddict.Server.AspNetCore;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 using Claim = System.Security.Claims.Claim;
-using static System.Net.Mime.MediaTypeNames;
-using Microsoft.AspNetCore.Identity;
-using System.Security.Principal;
 
 namespace JGUZDV.OIDC.ProtocolServer.Web.Controllers;
 
@@ -105,7 +102,8 @@ public class ConnectController(
 
 
     /// <summary>
-    /// 
+    /// This method is the "token endpoint" of the OIDC server. It's commonly called "exchange" in OIDC, probably because it exchanges some grant for tokens.
+    /// It's used to determine the GrantType and then call the appropriate method to handle the grant.
     /// </summary>
     [HttpPost("~/connect/token"), IgnoreAntiforgeryToken, Produces("application/json")]
     public async Task<IActionResult> Exchange(CancellationToken ct)
@@ -144,32 +142,8 @@ public class ConnectController(
                 }));
         }
 
+
         var authenticatedUser = authResult.Principal;
-
-        // Check if the user account is still active
-        if (!_userValidation.IsUserActive(authenticatedUser))
-        {
-            return Forbid(
-                authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-                properties: new AuthenticationProperties(new Dictionary<string, string?>
-                {
-                    [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
-                    [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The user is no longer active."
-                }));
-        }
-
-        // check if the password has changed _after_ refresh_token issuance
-        if (_userValidation.LastPasswordChange(authenticatedUser) > authenticatedUser.GetCreationDate())
-        {
-            return Forbid(
-                authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-                properties: new AuthenticationProperties(new Dictionary<string, string?>
-                {
-                    [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
-                    [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The refresh token expired through password reset."
-                }));
-        }
-
 
         // If we're in a auth_code flow, we'll just return the user as is, since it's data should be fresh.
         if (oidcRequest.IsAuthorizationCodeGrantType())
@@ -177,9 +151,35 @@ public class ConnectController(
             return SignIn(authenticatedUser, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
-        // If we're in a refresh_token flow, we'll need to refresh the user data.
-        if(oidcRequest.IsRefreshTokenGrantType())
+
+        // If we're in a refresh_token flow, we'll do some checks and refresh the user data.
+        if (oidcRequest.IsRefreshTokenGrantType())
         {
+            // Check if the user account is still active
+            if (!_userValidation.IsUserActive(authenticatedUser))
+            {
+                return Forbid(
+                    authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+                    properties: new AuthenticationProperties(new Dictionary<string, string?>
+                    {
+                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
+                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The user is no longer active."
+                    }));
+            }
+
+            // check if the password has changed _after_ refresh_token issuance
+            if (_userValidation.LastPasswordChange(authenticatedUser) > authenticatedUser.GetCreationDate())
+            {
+                return Forbid(
+                    authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+                    properties: new AuthenticationProperties(new Dictionary<string, string?>
+                    {
+                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
+                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The refresh token expired through password reset."
+                    }));
+            }
+
+        
             // Retrieve the application and scopes from the request
             var (application, scopes) = await GetApplicationAndScopesAsync(oidcRequest.ClientId!, authenticatedUser.GetScopes(), ct);
 
@@ -189,6 +189,7 @@ public class ConnectController(
             // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
             return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
+
 
         // This should never be reached, as it's checked before this method is called, nevertheless, errors happen and we'll throw, if we get here.
         throw new InvalidOperationException("The specified grant type is not supported.");

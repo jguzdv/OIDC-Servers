@@ -116,11 +116,11 @@ services.AddOpenIddict()
         // logout, token, userinfo and verification endpoints.
         options
             .SetAuthorizationEndpointUris("connect/authorize")
-            .SetDeviceEndpointUris("connect/device")
-            .SetIntrospectionEndpointUris("connect/introspect")
+            //.SetDeviceEndpointUris("connect/device")
+            //.SetIntrospectionEndpointUris("connect/introspect")
             .SetTokenEndpointUris("connect/token")
             .SetUserinfoEndpointUris("connect/userinfo")
-            .SetVerificationEndpointUris("connect/verify")
+            //.SetVerificationEndpointUris("connect/verify")
             .SetLogoutEndpointUris("connect/endsession");
 
         options
@@ -288,9 +288,10 @@ internal static class Startup
                 OpenIddictConstants.Permissions.Prefixes.Scope + "sample",
                 OpenIddictConstants.Permissions.Endpoints.Authorization,
                 OpenIddictConstants.Permissions.Endpoints.Token,
-                OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
                 OpenIddictConstants.Permissions.ResponseTypes.Code,
-                OpenIddictConstants.Permissions.GrantTypes.RefreshToken
+                OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
+                OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
+                OpenIddictConstants.Permissions.GrantTypes.ClientCredentials
             },
             ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
             Properties =

@@ -25,27 +25,48 @@ namespace Demo_WebApp.Pages
             AuthResult = await HttpContext.AuthenticateAsync();
         }
 
-        public async void OnPost()
+        public async Task OnPost(string grantType)
         {
             AuthResult = await HttpContext.AuthenticateAsync();
-
-            var options = _optionsMonitor.Get(OpenIdConnectDefaults.AuthenticationScheme);
-            var config = await options.ConfigurationManager!.GetConfigurationAsync(HttpContext.RequestAborted);
-
-            var refreshToken = AuthResult.Properties.GetTokenValue("refresh_token");
-            // Use the refresh token to get a new access token
-            var response = await options.Backchannel.SendAsync(new(HttpMethod.Post, config.TokenEndpoint)
+            
+            if (grantType == "refresh_token")
             {
-                Content = new FormUrlEncodedContent(new Dictionary<string, string>
-                {
-                    ["grant_type"] = "refresh_token",
-                    ["refresh_token"] = refreshToken,
-                    ["client_id"] = options.ClientId,
-                    ["client_secret"] = options.ClientSecret
-                })
-            });
+                var options = _optionsMonitor.Get(OpenIdConnectDefaults.AuthenticationScheme);
+                var config = await options.ConfigurationManager!.GetConfigurationAsync(HttpContext.RequestAborted);
 
-            var payload = await response.Content.ReadAsStringAsync();
+                var refreshToken = AuthResult.Properties.GetTokenValue("refresh_token");
+                // Use the refresh token to get a new access token
+                var response = await options.Backchannel.SendAsync(new(HttpMethod.Post, config.TokenEndpoint)
+                {
+                    Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                    {
+                        ["grant_type"] = "refresh_token",
+                        ["refresh_token"] = refreshToken,
+                        ["client_id"] = options.ClientId,
+                        ["client_secret"] = options.ClientSecret
+                    })
+                });
+
+                var payload = await response.Content.ReadAsStringAsync();
+            }
+
+            if (grantType == "client_credentials")
+            {
+                var options = _optionsMonitor.Get(OpenIdConnectDefaults.AuthenticationScheme);
+                var config = await options.ConfigurationManager!.GetConfigurationAsync(HttpContext.RequestAborted);
+
+                var response = await options.Backchannel.SendAsync(new(HttpMethod.Post, config.TokenEndpoint)
+                {
+                    Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                    {
+                        ["grant_type"] = "client_credentials",
+                        ["client_id"] = options.ClientId,
+                        ["client_secret"] = options.ClientSecret
+                    })
+                });
+
+                var payload = await response.Content.ReadAsStringAsync();
+            }
         }
     }
 }
