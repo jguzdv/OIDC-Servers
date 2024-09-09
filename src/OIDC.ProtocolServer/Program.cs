@@ -1,5 +1,4 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Text.Json;
 
 using JGUZDV.ActiveDirectory;
 using JGUZDV.ActiveDirectory.Configuration;
@@ -14,7 +13,6 @@ using JGUZDV.OpenIddict.KeyManager.Configuration;
 
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
@@ -35,6 +33,8 @@ var services = builder.Services;
 services.AddTransient(sp => TimeProvider.System);
 services.AddSingleton(sp => (IConfigurationRoot)sp.GetRequiredService<IConfiguration>());
 
+// Some functions will need MVC, so we add it.
+// To have some folder structures, we set the view location formats.
 services.AddControllersWithViews()
     .AddRazorOptions(opt =>
     {
@@ -43,12 +43,14 @@ services.AddControllersWithViews()
         opt.ViewLocationFormats.Add("/Web/Views/Shared/{0}.cshtml");
     });
 
+// Add the database context and register OpenIddict.
 services.AddDbContext<ApplicationDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString(nameof(ApplicationDbContext));
     options.UseSqlServer(connectionString);
     options.UseOpenIddict();
 });
+
 
 if (builder.Environment.IsDevelopment())
 {
@@ -57,16 +59,21 @@ if (builder.Environment.IsDevelopment())
 }
 else
 {
+    // Data protection and distributed cache are required, since else cookies will explode in size.
     builder.AddJGUZDVDataProtection();
     services.AddDistributedSqlServerCache(opt => builder.Configuration.GetSection("DistributedCache").Bind(opt));
 }
 
+
 services.AddSingleton<CustomOpenIdConnectEvents>();
+
 services.AddAuthentication(options =>
 {
+    // Local login will be done via cookies an OIDC from another host.
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
 })
+    // Add OIDC for non MFA'd logins.
     .AddOpenIdConnect(
         Constants.AuthenticationSchemes.OIDC,
         options =>
@@ -78,6 +85,8 @@ services.AddAuthentication(options =>
             options.EventsType = typeof(CustomOpenIdConnectEvents);
         }
     )
+
+    // Add OIDC for MFA'd logins.
     .AddOpenIdConnect(
         Constants.AuthenticationSchemes.MFA,
         options =>
@@ -90,6 +99,7 @@ services.AddAuthentication(options =>
             options.EventsType = typeof(CustomOpenIdConnectEvents);
         }
     )
+    // We'll use a short lived cookie for the login, since the OIDC server configured above has own lifetimes for cookies.
     .AddCookie(options =>
     {
         options.LoginPath = "/authn/login";
@@ -99,17 +109,20 @@ services.AddAuthentication(options =>
     })
     .AddCookieDistributedTicketStore();
 
+
 services.AddOpenIddict()
     .AddCore(options =>
     {
         options.UseEntityFrameworkCore()
             .UseDbContext<ApplicationDbContext>();
 
+        // Our own application manager, that will handle some left overs stuff from migrating from IdentityServer4.
         options.ReplaceApplicationManager<JGUApplicationManager>();
     })
     .AddServer(options =>
     {
-        if(builder.Configuration.GetValue<string>("ProtocolServer:Issuer") is string issuer and { Length: > 0 })
+        // If the config contains an issuer, we'll use it.
+        if (builder.Configuration.GetValue<string>("ProtocolServer:Issuer") is string issuer and { Length: > 0 })
         {
             options.SetIssuer(issuer);
         }
@@ -144,6 +157,7 @@ services.AddOpenIddict()
             .PreferDefaultAccessTokenFormat();
 
         // TODO: Consider reenabling this.
+        // Disable the automatic encryption of access tokens - we're not sure all our software can handle it.
         options.Configure(opt => opt.DisableAccessTokenEncryption = true);
 
         // Register the ASP.NET Core host and configure the ASP.NET Core-specific options.
@@ -163,6 +177,7 @@ services.AddOpenIddict()
         options.UseAspNetCore();
     });
 
+// Automatic key rollover will provide new certificates, if the old ones are about to expire.
 services.AddAutomaticKeyRollover(
     OpenIddictKeyManagerExtensions.KeyType.X509,
     conf =>
@@ -182,6 +197,7 @@ services
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
+
 services.AddScoped<OIDCContextProvider>();
 services.AddScoped<IdentityProvider>();
 
@@ -189,6 +205,7 @@ services.AddSingleton<DirectoryEntryProvider>();
 services.AddPropertyReader();
 services.AddClaimProvider();
 
+// Add property reader options for the properties we want to read from the AD.
 services.AddOptions<PropertyReaderOptions>()
     .PostConfigure<IOptions<ProtocolServerOptions>>((readerOptions, serverOptions) =>
     {
@@ -211,6 +228,7 @@ services.AddOptions<PropertyReaderOptions>()
         }
     });
 
+// Same, but for claims.
 services.AddOptions<ClaimProviderOptions>()
     .PostConfigure<IOptions<ProtocolServerOptions>>((cpOptions, serverOptions) =>
     {
@@ -221,10 +239,13 @@ services.AddOptions<ClaimProviderOptions>()
         }
     });
 
+
 services
     .AddClaimProvider<ActiveDirectoryClaimProviderFacade>()
     .AddScoped<UserValidationProvider>();
 
+
+// Finished setting up the services, now build the app.
 
 var app = builder.Build();
 
@@ -277,7 +298,7 @@ connect.MapMethods("/userinfo", [HttpMethods.Get, HttpMethods.Post], Endpoints.O
 app.Run();
 
 
-
+// Code for debugging things
 internal static class Startup
 {
 

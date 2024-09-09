@@ -25,7 +25,8 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         {
             var result = await base.ValidateClientSecretAsync(secret, comparand, cancellationToken);
 
-            // The secret might be migrated from IdentityServer 4, so we need to replicate their hashing before we check the secret.
+            // The secret might be migrated from IdentityServer 4,
+            // so we need to replicate their hashing before we check the secret, since we copied the hashed values from there.
             if (!result)
             {
                 // Base64 encode the sha256 hash of the secret
@@ -38,15 +39,17 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
 
         public override async ValueTask<bool> ValidateRedirectUriAsync(OpenIddictEntityFrameworkCoreApplication application, [StringSyntax("Uri")] string uri, CancellationToken cancellationToken = default)
         {
-            //TODO: Valdiate URLs with placeholder values, that originally have been Regexes
             if (await base.ValidateRedirectUriAsync(application, uri, cancellationToken))
             {
                 return true;
             }
 
             var redirectUris = await Store.GetRedirectUrisAsync(application, cancellationToken);
+
+            // We allow validation of redirect uris with placeholders in them. Indicated by ___ in the uri.
             return ValidateRegexRedirectUri(redirectUris, uri, cancellationToken);
         }
+
 
         public override async ValueTask<bool> ValidatePostLogoutRedirectUriAsync(OpenIddictEntityFrameworkCoreApplication application, [StringSyntax("Uri")] string uri, CancellationToken cancellationToken = default)
         {
@@ -58,6 +61,7 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
             var redirectUris = await Store.GetPostLogoutRedirectUrisAsync(application, cancellationToken);
             return ValidateRegexRedirectUri(redirectUris, uri, cancellationToken);
         }
+
 
         private static bool ValidateRegexRedirectUri(ICollection<string> redirectUris, string uri, CancellationToken cancellationToken = default)
         {
