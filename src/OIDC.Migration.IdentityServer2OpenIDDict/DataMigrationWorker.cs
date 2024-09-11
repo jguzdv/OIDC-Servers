@@ -175,7 +175,7 @@ internal class DataMigrationWorker : IHostedService
         try
         {
             var validSecrets = srcClient.ClientSecrets
-                .Where(x => x.Expiration > DateTime.UtcNow);
+                .Where(x => !x.Expiration.HasValue || x.Expiration > DateTime.UtcNow);
             var hasSecret = srcClient.ClientSecrets.Any();
 
             var descriptor = new OpenIddictApplicationDescriptor
