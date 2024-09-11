@@ -30,7 +30,7 @@ builder.Services.AddAuthentication(options =>
                 options.ResponseType = "code";
 
                 options.SaveTokens = true;
-                options.GetClaimsFromUserInfoEndpoint = false;
+                options.GetClaimsFromUserInfoEndpoint = true;
                 options.Scope.Clear();
                 options.Scope.Add("openid");
                 options.Scope.Add("offline_access");
