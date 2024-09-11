@@ -3,7 +3,10 @@
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Model;
 
+using Microsoft.AspNetCore.Authentication;
+
 using OpenIddict.Abstractions;
+using OpenIddict.Server.AspNetCore;
 
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -14,19 +17,22 @@ public partial class Endpoints
     public static partial class OIDC
     {
         public static async Task<IResult> UserInfo(
-            ClaimsPrincipal user,
+            HttpContext httpContext,
             IOpenIddictScopeManager scopeManager,
             IEnumerable<IClaimProvider> claimProviders,
             CancellationToken ct)
         {
+            var authResult = await httpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            if(!authResult.Succeeded)
+            {
+                return Unauthorized();
+            }
+
+            var user = authResult.Principal!;
             var userSubject = user.GetClaim(Claims.Subject);
             if (string.IsNullOrWhiteSpace(userSubject))
             {
-                return Results.BadRequest(new OpenIddictResponse
-                {
-                    Error = Errors.InvalidRequest,
-                    ErrorDescription = "The user is not authenticated."
-                });
+                return Unauthorized();
             }
 
             var userScopes = user.GetScopes();
@@ -38,14 +44,14 @@ public partial class Endpoints
                 .Except([Claims.Subject], StringComparer.OrdinalIgnoreCase) // We'll add the subject from the current user
                 .ToHashSet();
 
-            var userClaims = new List<(string Type, string Value)>
-        {
-            (Claims.Subject, userSubject)
-        };
+            var userClaims = new List<Model.Claim>
+            {
+                new(Claims.Subject, userSubject)
+            };
 
             foreach (var cp in claimProviders)
             {
-                var claims = await cp.GetClaimsAsync(user, idClaims.Distinct(), ct);
+                var claims = await cp.GetClaimsAsync(user, userClaims, idClaims.Distinct(), ct);
                 userClaims.AddRange(claims);
             }
 
@@ -60,5 +66,12 @@ public partial class Endpoints
 
             return Results.Ok(result);
         }
+
+        private static IResult Unauthorized() 
+            => Results.BadRequest(new OpenIddictResponse
+            {
+                Error = Errors.InvalidRequest,
+                ErrorDescription = "Could not provide user-info, since the user could not be identified."
+            });
     }
 }

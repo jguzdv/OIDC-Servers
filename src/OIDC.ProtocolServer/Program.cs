@@ -286,10 +286,7 @@ connect.MapPost("/token", Endpoints.OIDC.Exchange)
     .DisableAntiforgery();
 
 connect.MapMethods("/userinfo", [HttpMethods.Get, HttpMethods.Post], Endpoints.OIDC.UserInfo)
-    .RequireAuthorization(p => {
-        p.AuthenticationSchemes = [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme];
-        p.RequireAuthenticatedUser();
-    })
+    .DisableAntiforgery()
     .Produces(200, contentType: "application/json");
 
 //connect.MapPost("/endsession", Endpoints.OIDC.EndSession);
