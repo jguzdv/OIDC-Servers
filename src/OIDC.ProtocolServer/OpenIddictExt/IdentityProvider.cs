@@ -2,7 +2,9 @@
 using System.Security.Claims;
 
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
+using JGUZDV.OIDC.ProtocolServer.Configuration;
 
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 using OpenIddict.Abstractions;
@@ -11,9 +13,10 @@ using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
 {
-    public class IdentityProvider(IEnumerable<IClaimProvider> claimProviders)
+    public class IdentityProvider(IEnumerable<IClaimProvider> claimProviders, IOptions<ProtocolServerOptions> options)
     {
         private readonly IEnumerable<IClaimProvider> _claimProviders = claimProviders;
+        private readonly IOptions<ProtocolServerOptions> _options = options;
 
         //TODO: would probably be better to have this in the options
         private readonly ISet<string> _remoteClaimTypes = new HashSet<string>()
@@ -22,8 +25,9 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
             Constants.ClaimTypes.MFAAuthTime
         };
 
+        private static readonly IEnumerable<string> IdTokenOnly = [Destinations.IdentityToken];
+        private static readonly IEnumerable<string> AccessTokenOnly = [Destinations.AccessToken];
         private static readonly IEnumerable<string> BothTokens = [Destinations.IdentityToken, Destinations.AccessToken];
-        private static readonly IEnumerable<string> AccessToken = [Destinations.AccessToken];
 
 
         public async Task<ClaimsIdentity> CreateIdentityAsync(
@@ -35,6 +39,7 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
             // Also collect "resources" (=> Audience) that are requested by the client application.
             var idTokenClaims = new HashSet<string>(context.Application.Properties.RequestedClaimTypes);
             var accessTokenClaims = new HashSet<string>();
+            var essentialClaims = new HashSet<string>([_options.Value.SubjectClaimType, _options.Value.PersonIdentifierClaimType]);
             var resources = new HashSet<string>();
 
             foreach (var scope in context.Scopes)
@@ -49,7 +54,7 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
             }
 
             // Load all claims that are requested by the client application
-            var requestedClaims = new HashSet<string>(idTokenClaims.Concat(accessTokenClaims));
+            var requestedClaims = new HashSet<string>(idTokenClaims.Concat(accessTokenClaims).Concat(essentialClaims));
             var subjectClaims = await LoadSubjectClaims(subjectUser, requestedClaims, ct);
 
 
@@ -76,18 +81,23 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
             identity.SetClaims(subjectClaims);
 
             // Currently _all_ claims will be added to the access token and _some_ claims will be added to the id token.
-            identity.SetDestinations(c => GetDestinations(c, idTokenClaims));
+            identity.SetDestinations(c => GetDestinations(c, idTokenClaims, accessTokenClaims));
 
             return identity;
         }
 
 
-        private async Task<List<Model.Claim>> LoadSubjectClaims(ClaimsPrincipal subject, HashSet<string> requestedClaims, CancellationToken ct)
+        private async Task<List<Model.Claim>> LoadSubjectClaims(ClaimsPrincipal subject, HashSet<string> requestedClaimTypes, CancellationToken ct)
         {
             var userClaims = new List<Model.Claim>();
-            foreach (var cp in _claimProviders)
+            foreach (var cp in _claimProviders.OrderBy(x => x.ExecutionOrder))
             {
-                var claims = await cp.GetClaimsAsync(subject, requestedClaims, ct);
+                if (!cp.CanProvideAnyOf(requestedClaimTypes))
+                {
+                    continue;
+                }
+
+                var claims = await cp.GetClaimsAsync(subject, userClaims, requestedClaimTypes, ct);
                 userClaims.AddRange(claims.Select(x => new Model.Claim(x.Type, x.Value)));
             }
 
@@ -95,10 +105,13 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         }
 
 
-        private static IEnumerable<string> GetDestinations(Claim claim, HashSet<string> idTokenClaims)
+        private static IEnumerable<string> GetDestinations(Claim claim, HashSet<string> idTokenClaims, HashSet<string> accessTokenClaims)
         {
-            return idTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase)
-                ? BothTokens : AccessToken;
+            if(accessTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase) )
+                yield return Destinations.AccessToken;
+
+            if(idTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase))
+                yield return Destinations.IdentityToken;
         }
     }
 }
