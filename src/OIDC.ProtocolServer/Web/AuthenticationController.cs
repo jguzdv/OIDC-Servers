@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace JGUZDV.OIDC.ProtocolServer.Web.Controllers
+namespace JGUZDV.OIDC.ProtocolServer.Web
 {
     public class AuthenticationController : ControllerBase
     {
