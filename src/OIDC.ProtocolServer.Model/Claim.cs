@@ -1,7 +1,7 @@
 ﻿
 namespace JGUZDV.OIDC.ProtocolServer.Model
 {
-    public class Claim
+    public class Claim // TODO: this should probably be a record
     {
         public Claim(string type, string value)
         {

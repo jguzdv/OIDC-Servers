@@ -5,6 +5,7 @@ using JGUZDV.ActiveDirectory.Configuration;
 using JGUZDV.OIDC.ProtocolServer.ActiveDirectory;
 using JGUZDV.OIDC.ProtocolServer.Authentication;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
+using JGUZDV.OIDC.ProtocolServer.ClaimProviders.JGUDirectory;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
 using JGUZDV.OIDC.ProtocolServer.Model;
 using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
@@ -145,6 +146,8 @@ services.AddOpenIddict()
             .AllowImplicitFlow()
             .AllowHybridFlow();
 
+        // Remove a check, if the scope parameter exists on request to the token endpoint.
+        options.RemoveEventHandler(OpenIddict.Server.OpenIddictServerHandlers.Exchange.ValidateScopeParameter.Descriptor);
 
         //if (builder.Environment.IsDevelopment())
         //{
@@ -242,6 +245,7 @@ services.AddOptions<ClaimProviderOptions>()
 
 services
     .AddClaimProvider<ActiveDirectoryClaimProviderFacade>()
+    .AddClaimProvider<JGUDirectoryClaimProvider>()
     .AddScoped<UserValidationProvider>();
 
 
@@ -317,6 +321,7 @@ internal static class Startup
             ClientId = "sample",
             ClientSecret = "P@ssword!1",
             RedirectUris = { new Uri("https://localhost:5001/signin-oidc") },
+            PostLogoutRedirectUris = { new Uri("https://localhost:5001/signout-callback-oidc") },
             Permissions =
             {
                 OpenIddictConstants.Permissions.Scopes.Profile,
@@ -354,6 +359,7 @@ internal static class Startup
             ClientId = "sample-mfa",
             ClientSecret = "P@ssword!1",
             RedirectUris = { new Uri("https://localhost:5001/signin-oidc") },
+            PostLogoutRedirectUris = { new Uri("https://localhost:5001/signout-callback-oidc") },
             Permissions =
             {
                 OpenIddictConstants.Permissions.Scopes.Profile,
