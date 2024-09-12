@@ -47,8 +47,8 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
                 if (scope.Properties.TargetToken.Contains(Destinations.IdentityToken))
                     idTokenClaims.UnionWith(scope.Properties.RequestedClaimTypes);
 
-                //TODO: if (scope.Properties.TargetToken.Contains(Destinations.AccessToken))
-                accessTokenClaims.UnionWith(scope.Properties.RequestedClaimTypes);
+                if (scope.Properties.TargetToken.Contains(Destinations.AccessToken) || !scope.Properties.TargetToken.Any())
+                    accessTokenClaims.UnionWith(scope.Properties.RequestedClaimTypes);
 
                 resources.UnionWith(scope.Resources);
             }
