@@ -14,6 +14,12 @@ namespace JGUZDV.OIDC.ProtocolServer.Configuration
 
         [NotNull]
         public string? SubjectClaimType { get; set; }
+
+        [NotNull]
+        public string? PersonIdentifierClaimType { get; set; }
+
+        public string? JGUDirectoryDatabaseConnectionString { get; set; }
+
         public string DefaultConsentType { get; set; } = ConsentTypes.Implicit;
 
         public Dictionary<string, string> Properties { get; set; } = new();
