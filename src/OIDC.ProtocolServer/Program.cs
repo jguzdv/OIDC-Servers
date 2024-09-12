@@ -149,6 +149,9 @@ services.AddOpenIddict()
         // Remove a check, if the scope parameter exists on request to the token endpoint.
         options.RemoveEventHandler(OpenIddict.Server.OpenIddictServerHandlers.Exchange.ValidateScopeParameter.Descriptor);
 
+        // We'll use a rather long default lifetime for AccessTokens:
+        options.SetAccessTokenLifetime(TimeSpan.FromHours(8));
+
         //if (builder.Environment.IsDevelopment())
         //{
         //    options
