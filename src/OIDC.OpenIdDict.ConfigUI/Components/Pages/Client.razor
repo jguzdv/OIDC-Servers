@@ -93,10 +93,7 @@
 
                         <div class="mb-3">
                             <h3 class="h4">Redirect Uris</h3>
-                            @{
-                                var uris = _showAllRedirectUris ? ApplicationDescriptor.RedirectUris.ToList() : ApplicationDescriptor.RedirectUris.Take(3).ToList();
-                            }
-                            <UriList Items="@uris" />
+                            <UriList Items="@ApplicationDescriptor.RedirectUris" ShowAllItems="@_showAllRedirectUris" />
                             @if (ApplicationDescriptor.RedirectUris.Count > 3)
                             {
                                 @if (!_showAllRedirectUris)
@@ -111,10 +108,7 @@
                         </div>
                         <div class="mb-3">
                             <h3 class="h4">Post-logout Redirect Uris</h3>
-                            @{
-                                var pluris = _showAllPLRedirectUris ? ApplicationDescriptor.PostLogoutRedirectUris.ToList() : ApplicationDescriptor.PostLogoutRedirectUris.Take(3).ToList();
-                            }
-                            <UriList Items="@pluris" />
+                            <UriList Items="@ApplicationDescriptor.PostLogoutRedirectUris" ShowAllItems="@_showAllPLRedirectUris" />
                             @if (ApplicationDescriptor.PostLogoutRedirectUris.Count > 3)
                             {
                                 @if (!_showAllPLRedirectUris)

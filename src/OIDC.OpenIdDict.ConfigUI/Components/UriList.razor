@@ -5,7 +5,7 @@
     </div>
 
     <div class="mt-3">
-        @foreach (var item in Items)
+        @foreach (var item in (ShowAllItems ? Items : Items.Take(3)))
         {
             <div>
                 <span class="badge badge-hover text-bg-secondary me-2 mb-2  p-2">
@@ -20,6 +20,9 @@
 @code {
     [Parameter]
     public required ICollection<Uri> Items { get; set; }
+
+    [Parameter]
+    public required bool ShowAllItems { get; set; }
 
     private string? NewValue { get; set; }
 
