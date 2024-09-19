@@ -1,0 +1,29 @@
+﻿@model Microsoft.AspNetCore.Authentication.AuthenticateResult
+
+<div class="container">
+    <div class="row">
+        <h1 class="col-12 mb-3">Who Am I?</h1>
+
+        <h2 class="col-12">Claims</h2>
+        <div class="col-12">
+            <dl>
+            @foreach(var claim in Model.Principal!.Claims)
+            {
+                <dt>@claim.Type</dt>
+                <dd>@claim.Value</dd>
+            }
+            </dl>
+        </div>
+        
+        <h1 class="col-12">Properties</h1>
+        <div class="col-12">
+            <dl>
+            @foreach(var item in Model.Properties!.Items)
+            {
+                <dt>@item.Key</dt>
+                <dd>@item.Value</dd>
+            }
+            </dl>
+        </div>
+    </div>
+</div>

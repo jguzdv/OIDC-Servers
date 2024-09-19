@@ -1,0 +1,242 @@
+@page "/client"
+@page "/client/{*clientId}"
+@using JGUZDV.OIDC.ProtocolServer.Model
+@using global::OpenIddict.Abstractions
+
+@inject IOpenIddictApplicationManager _applicationManager
+@inject IOpenIddictScopeManager _scopeManager
+
+<div class="container">
+    @if (_client != null || _createNew)
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between">
+                    <h2>@ApplicationDescriptor.DisplayName</h2>
+                    <button class="btn btn-success" @onclick="() => SaveChanges()"><i class="fa fa-fw fa-save"></i></button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="mb-3">
+                            <label for="client-id">Client ID</label>
+                            <input type="text" id="client-id" class="form-control" @bind-value="@ApplicationDescriptor.ClientId" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="client-name">Client Name</label>
+                            <input type="text" id="client-name" class="form-control" @bind-value="@ApplicationDescriptor.DisplayName" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="client-name">Client Secret</label>
+                            <SecretInput Application="@ApplicationDescriptor" />
+                        </div>
+                        <div class="mb-3">
+                            <div class="row">
+                                <div class="col-4">
+                                    <h3 class="h4">Grant types</h3>
+                                    @foreach (var permission in GrantTypePermissions)
+                                    {
+                                        <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
+                                    }
+                                </div>
+                                <div class="col-4">
+                                    <h3 class="h4">Endpoints</h3>
+                                    @foreach (var permission in EndpointPermissions)
+                                    {
+                                        <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
+                                    }
+                                </div>
+                                <div class="col-4">
+                                    <h3 class="h4">Response types</h3>
+                                    @foreach (var permission in ResponseTypePermissions)
+                                    {
+                                        <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <h3>Scopes</h3>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="showAllScopes" @onclick=@(() => _showAllScopes = !_showAllScopes) checked="@_showAllScopes">
+                                <label class="form-check-label" for="showAllScopes">Show all scopes</label>
+                            </div>
+                            @foreach (var permission in ScopePermissions.Where(x => ApplicationDescriptor.Permissions.Contains(x.Value)).OrderBy(x => x.Displayname))
+                            {
+                                <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
+                            }
+                            @if (_showAllScopes)
+                            {
+                                @foreach (var permission in ScopePermissions.Where(x => !ApplicationDescriptor.Permissions.Contains(x.Value)).OrderBy(x => x.Displayname))
+                                {
+                                    <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
+                                }
+                            }
+
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="mb-3">
+                            <h3 class="h4">Requested claim types</h3>
+                            <StringList Items="@ApplicationProperties.RequestedClaimTypes" />
+                        </div>
+                        <div class="mb-3">
+                            <h3 class="h4">Static claims</h3>
+                            <ClaimList Items="@ApplicationProperties.StaticClaims" />
+                        </div>
+
+                        <div class="mb-3">
+                            <h3 class="h4">MFA</h3>
+                            <MfaEditor Value="@ApplicationProperties.MFA" />
+                        </div>
+
+                        <div class="mb-3">
+                            <h3 class="h4">Redirect Uris</h3>
+                            <UriList Items="@ApplicationDescriptor.RedirectUris" ShowAllItems="@_showAllRedirectUris" />
+                            @if (ApplicationDescriptor.RedirectUris.Count > 3)
+                            {
+                                @if (!_showAllRedirectUris)
+                                {
+                                    <i class="fas fa-ellipsis-h"></i>
+                                }
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="showAllRedirectUris" @onclick=@(() => _showAllRedirectUris = !_showAllRedirectUris) checked="@_showAllRedirectUris">
+                                    <label class="form-check-label" for="showAllRedirectUris">Show all created Redirect Uris</label>
+                                </div>
+                            }
+                        </div>
+                        <div class="mb-3">
+                            <h3 class="h4">Post-logout Redirect Uris</h3>
+                            <UriList Items="@ApplicationDescriptor.PostLogoutRedirectUris" ShowAllItems="@_showAllPLRedirectUris" />
+                            @if (ApplicationDescriptor.PostLogoutRedirectUris.Count > 3)
+                            {
+                                @if (!_showAllPLRedirectUris)
+                                {
+                                    <i class="fas fa-ellipsis-h"></i>
+                                }
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="showAllPostLogoutRedirectUris" @onclick=@(() => _showAllPLRedirectUris = !_showAllPLRedirectUris) checked="@_showAllPLRedirectUris">
+                                    <label class="form-check-label" for="showAllPostLogoutRedirectUris">Show all created Post-logout Redirect Uris</label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <p>Loading... (ActivityIndicator)</p>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public required string ClientId { get; set; }
+
+    private object? _client;
+    private bool _createNew;
+
+    private bool _showAllScopes;
+    private bool _showAllRedirectUris;
+    private bool _showAllPLRedirectUris;
+
+    private OpenIddictApplicationDescriptor ApplicationDescriptor { get; set; } = new();
+    private ApplicationProperties ApplicationProperties { get; set; } = new();
+
+    private List<(string Value, string Displayname)> GrantTypePermissions { get; } = new();
+    private List<(string Value, string Displayname)> ResponseTypePermissions { get; } = new();
+    private List<(string Value, string Displayname)> ScopePermissions { get; } = new();
+    private List<(string Value, string Displayname)> EndpointPermissions { get; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        GrantTypePermissions.Add((OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode, "Authorization Code"));
+        GrantTypePermissions.Add((OpenIddictConstants.Permissions.GrantTypes.ClientCredentials, "Client Credentials"));
+        GrantTypePermissions.Add((OpenIddictConstants.Permissions.GrantTypes.DeviceCode, "Device Code"));
+        GrantTypePermissions.Add((OpenIddictConstants.Permissions.GrantTypes.Implicit, "Implicit"));
+        GrantTypePermissions.Add((OpenIddictConstants.Permissions.GrantTypes.Password, "Password"));
+        GrantTypePermissions.Add((OpenIddictConstants.Permissions.GrantTypes.RefreshToken, "Refresh Token"));
+
+        ResponseTypePermissions.Add((OpenIddictConstants.Permissions.ResponseTypes.Code, "Code"));
+        ResponseTypePermissions.Add((OpenIddictConstants.Permissions.ResponseTypes.CodeIdToken, "Code IdToken"));
+        ResponseTypePermissions.Add((OpenIddictConstants.Permissions.ResponseTypes.CodeIdTokenToken, "Code IdToken Token"));
+        ResponseTypePermissions.Add((OpenIddictConstants.Permissions.ResponseTypes.CodeToken, "Code Token"));
+        ResponseTypePermissions.Add((OpenIddictConstants.Permissions.ResponseTypes.IdToken, "ID Token"));
+        ResponseTypePermissions.Add((OpenIddictConstants.Permissions.ResponseTypes.IdTokenToken, "IdToken Token"));
+        ResponseTypePermissions.Add((OpenIddictConstants.Permissions.ResponseTypes.Token, "Token"));
+
+        EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Authorization, "Authorization"));
+        EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Device, "Device"));
+        EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Introspection, "Introspection"));
+        EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Logout, "Logout"));
+        EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Revocation, "Revocation"));
+        EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Token, "Token"));
+
+        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Profile, "Profile"));
+        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Roles, "Roles"));
+        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Email, "Email"));
+        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Phone, "Phone"));
+        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Address, "Address"));
+
+        // Load all scopes
+        var scopes = _scopeManager.ListAsync();
+
+        await foreach (var scope in scopes)
+        {
+            var scopeDescriptor = new OpenIddictScopeDescriptor();
+            await _scopeManager.PopulateAsync(scopeDescriptor, scope);
+
+            ScopePermissions.Add((OpenIddictConstants.Permissions.Prefixes.Scope + scopeDescriptor.Name, $"{scopeDescriptor.Name} ({scopeDescriptor.DisplayName})"));
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        _createNew = ClientId == null;
+        _showAllScopes = _createNew;
+
+        if (!_createNew)
+        {
+            // Load the client details
+            _client = await _applicationManager.FindByClientIdAsync(ClientId);
+            if (_client == null)
+            {
+                // TODO: Add toasts and use it here
+                NavigationManager.NavigateTo("/");
+                return;
+            }
+
+            await _applicationManager.PopulateAsync(ApplicationDescriptor, _client);
+            ApplicationProperties = ApplicationProperties.DeserializeFromProperties(ApplicationDescriptor.Properties);
+        }
+
+        else
+        {
+            ApplicationDescriptor = new();
+            ApplicationProperties = new ApplicationProperties();
+        }
+    }
+
+
+    private async Task SaveChanges()
+    {
+        ApplicationDescriptor.Properties[CustomProperties.PropertyName] = ApplicationProperties.Serialize();
+
+        if (_client == null)
+        {
+            await _applicationManager.CreateAsync(ApplicationDescriptor);
+        }
+        else
+        {
+            await _applicationManager.UpdateAsync(_client, ApplicationDescriptor);
+        }
+        NavigationManager.NavigateTo("/");
+    }
+}

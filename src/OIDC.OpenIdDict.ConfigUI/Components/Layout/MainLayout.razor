@@ -1,0 +1,47 @@
+﻿@using JGUZDV.OIDC.ProtocolServer.Model
+@using Microsoft.Data.SqlClient
+@using Microsoft.EntityFrameworkCore
+@inherits LayoutComponentBase
+
+@inject ApplicationDbContext DbContext
+@inject NavigationManager NavigationManager
+
+<div class="page">
+    <main>
+        <div class="top-row px-4">
+            <div class="flex-fill">
+                <ul class="nav">
+                    <li class="nav-item">
+                        <NavLink href="/" class="nav-link fw-semibold text-decoration-none" Match="NavLinkMatch.All">
+                            Clients
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink href="/scopes" class="nav-link fw-semibold text-decoration-none" Match="NavLinkMatch.All">
+                            Scopes
+                        </NavLink>
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <i class="fa fa-fw fa-plug"></i> @_connectionData
+            </div>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    private string? _connectionData;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        var csBuilder = new SqlConnectionStringBuilder(DbContext.Database.GetDbConnection().ConnectionString);
+        _connectionData = $"{csBuilder.InitialCatalog} @ {csBuilder.DataSource}";
+    }
+}

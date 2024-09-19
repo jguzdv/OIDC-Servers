@@ -1,0 +1,74 @@
+@page "/scopes"
+@using global::OpenIddict.Abstractions
+
+@inject IOpenIddictScopeManager _scopeManager
+
+<div class="d-flex justify-content-between">
+    <h2>Scopes</h2>
+    <div>
+        <a class="btn btn-primary" href="/scope">
+            <i class="fa fa-fw fa-plus"></i> Add Scope
+        </a>
+    </div>
+</div>
+<table class="table table-striped table-hover mw-100 align-middle">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Display Name</th>
+            <th>Description</th>
+            <th></th>
+        </tr>
+        <tr>
+            <th></th>
+            <th><input type="text" value="@SearchString" @oninput="(e) => { SearchString = e.Value.ToString(); FilterScopes(); }" class="form-control form-control-search form-control-sm" id="search-client-id"></th>
+            <th></th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var scope in _filteredScopes.OrderBy(x => x.Name))
+        {
+            <tr>
+                <td>@scope.Name</td>
+                <td>@scope.DisplayName</td>
+                <td>@scope.Description</td>
+                <td class="text-nowrap">
+                    <a class="btn btn-primary" href="/scope/@scope.Name"><i class="fa fa-fw fa-pencil"></i></a>
+                    <button class="btn btn-danger"><i class="fa fa-fw fa-trash"></i></button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<OpenIddictScopeDescriptor> _scopes = [];
+    private List<OpenIddictScopeDescriptor> _filteredScopes = [];
+
+    private string SearchString { get; set; } = string.Empty;
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var applications = _scopeManager.ListAsync();
+        await foreach (var application in applications)
+        {
+            var scopeDescriptor = new OpenIddictScopeDescriptor();
+            await _scopeManager.PopulateAsync(scopeDescriptor, application);
+
+            _scopes.Add(scopeDescriptor);
+        }
+
+        _filteredScopes = _scopes;
+    }
+
+    public void FilterScopes()
+    {
+        _filteredScopes = _scopes
+            .Where(scope =>
+                string.IsNullOrEmpty(SearchString) || (!string.IsNullOrEmpty(scope.DisplayName) && scope.DisplayName.Contains(SearchString, StringComparison.OrdinalIgnoreCase))
+            )
+            .ToList();
+    }
+}

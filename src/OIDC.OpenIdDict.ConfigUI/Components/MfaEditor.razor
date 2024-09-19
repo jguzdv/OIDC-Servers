@@ -1,0 +1,28 @@
+@using JGUZDV.OIDC.ProtocolServer.Model
+
+<div class="mb-3">
+    <input type="checkbox" id="mfa_required" 
+        checked="@Value.Required" 
+        @onchange="(e) => Value.Required = (bool)(e.Value ?? false)" />
+    <label for="mfa_required">Require MFA</label>
+</div>
+
+<div class="mb-3">
+    <label for="mfa_max_age">MFA max age (seconds)</label>
+    <input type="number" id="mfa_max_age" class="form-control" 
+        value="@Value.MaxAge?.TotalSeconds"
+        @onchange="(e) => SetMaxAge((string?)e.Value)"/>
+</div>
+
+@code {
+    [Parameter]
+    public required MFAProps Value { get; set; }
+
+    private void SetMaxAge(string? value) {
+        if (value != null && int.TryParse(value, out var seconds)) {
+            Value.MaxAge = TimeSpan.FromSeconds(seconds);
+        } else {
+            Value.MaxAge = null;
+        }
+    }
+}
