@@ -151,6 +151,7 @@ services.AddOpenIddict()
 
         // We'll use a rather long default lifetime for AccessTokens:
         options.SetAccessTokenLifetime(TimeSpan.FromHours(8));
+        options.SetIdentityTokenLifetime(TimeSpan.FromHours(8));
 
         //if (builder.Environment.IsDevelopment())
         //{
