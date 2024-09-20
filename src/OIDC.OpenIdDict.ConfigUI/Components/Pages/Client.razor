@@ -33,6 +33,26 @@
                         </div>
                         <div class="mb-3">
                             <div class="row">
+                                <div class="col-6">
+                                    <h3 class="h4">Application Type</h3>
+                                    <select class="form-select" @bind="@ApplicationDescriptor.ApplicationType">
+                                        <option value="@OpenIddictConstants.ApplicationTypes.Native">Native</option>
+                                        <option value="@OpenIddictConstants.ApplicationTypes.Web">Web</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <h3>Consent Type</h3>
+                                    <select class="form-select" @bind="@ApplicationDescriptor.ConsentType">
+                                        <option value="@OpenIddictConstants.ConsentTypes.Implicit">Implicit</option>
+                                        <option value="@OpenIddictConstants.ConsentTypes.Explicit">Explicit</option>
+                                        <option value="@OpenIddictConstants.ConsentTypes.Systematic">Systematic</option>
+                                        <option value="@OpenIddictConstants.ConsentTypes.External">Extermal</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="row">
                                 <div class="col-4">
                                     <h3 class="h4">Grant types</h3>
                                     @foreach (var permission in GrantTypePermissions)
@@ -205,7 +225,7 @@
         if (!_createNew)
         {
             // Load the client details
-            _client = await _applicationManager.FindByClientIdAsync(ClientId);
+            _client = await _applicationManager.FindByClientIdAsync(ClientId!);
             if (_client == null)
             {
                 // TODO: Add toasts and use it here
@@ -219,7 +239,11 @@
 
         else
         {
-            ApplicationDescriptor = new();
+            ApplicationDescriptor = new()
+                {
+                    ApplicationType = OpenIddictConstants.ApplicationTypes.Web,
+                    ConsentType = OpenIddictConstants.ConsentTypes.Implicit
+                };
             ApplicationProperties = new ApplicationProperties();
         }
     }
