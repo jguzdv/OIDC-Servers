@@ -37,9 +37,9 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         {
             // Determine, which claims are requested by the client application and to which token they should be added.
             // Also collect "resources" (=> Audience) that are requested by the client application.
-            var idTokenClaims = new HashSet<string>(context.Application.Properties.RequestedClaimTypes);
-            var accessTokenClaims = new HashSet<string>();
-            var essentialClaims = new HashSet<string>([_options.Value.SubjectClaimType, _options.Value.PersonIdentifierClaimType]);
+            var idTokenClaims = new HashSet<string>(context.Application.Properties.RequestedClaimTypes, StringComparer.OrdinalIgnoreCase);
+            var accessTokenClaims = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var essentialClaims = new HashSet<string>([_options.Value.SubjectClaimType, _options.Value.PersonIdentifierClaimType], StringComparer.OrdinalIgnoreCase);
             var resources = new HashSet<string>();
 
             foreach (var scope in context.Scopes)
@@ -71,7 +71,6 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
             identity.SetScopes(context.Scopes.Select(x => x.Name));
             identity.SetResources(context.Scopes.SelectMany(x => x.Resources));
 
-
             // Copy claims from the remote identity to the new identity
             foreach (var remoteClaim in subjectUser.Claims.Where(x => _remoteClaimTypes.Contains(x.Type)))
             {
@@ -81,7 +80,7 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
             identity.SetClaims(subjectClaims);
 
             // Currently _all_ claims will be added to the access token and _some_ claims will be added to the id token.
-            identity.SetDestinations(c => GetDestinations(c, idTokenClaims, accessTokenClaims));
+            identity.SetDestinations(c => GetDestinations(c, idTokenClaims, accessTokenClaims, essentialClaims));
 
             return identity;
         }
@@ -105,13 +104,28 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         }
 
 
-        private static IEnumerable<string> GetDestinations(Claim claim, HashSet<string> idTokenClaims, HashSet<string> accessTokenClaims)
+        private static IEnumerable<string> GetDestinations(Claim claim, HashSet<string> idTokenClaims, HashSet<string> accessTokenClaims, HashSet<string> essentialClaims)
         {
-            if(accessTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase) )
-                yield return Destinations.AccessToken;
+            if(essentialClaims.Contains(claim.Type))
+            {
+                return BothTokens;
+            }
 
-            if(idTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase))
-                yield return Destinations.IdentityToken;
+            if(accessTokenClaims.Contains(claim.Type))
+            {
+                if(idTokenClaims.Contains(claim.Type))
+                {
+                    return BothTokens;
+                }
+
+                return AccessTokenOnly;
+            }
+            else if (idTokenClaims.Contains(claim.Type))
+            {
+                return IdTokenOnly;
+            }
+
+            return [];
         }
     }
 }
