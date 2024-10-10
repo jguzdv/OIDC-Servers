@@ -55,8 +55,7 @@ public static partial class Endpoints
             // If we got this far, the user is authenticated and we can retrieve the user id from the claims.
             // The claims here are "remote" to the application, since they are provided by another authentication provider (see Program.cs).
             var authenticatedUser = httpContext.User;
-            var subject = authenticatedUser.GetClaim(options.Value.SubjectClaimType) ??
-                throw new InvalidOperationException($"The user is missing the claim {options.Value.SubjectClaimType}.");
+            var subject = GetUniqueClaimValue(authenticatedUser, options.Value.SubjectClaimType);
 
 
             // We might have application that are configured to ask for user consent. If this function returns an action result, we'll return it.
@@ -72,6 +71,20 @@ public static partial class Endpoints
 
             // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
             return Results.SignIn(new ClaimsPrincipal(identity), authenticationScheme: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        }
+
+        private static string GetUniqueClaimValue(ClaimsPrincipal principal, string claimType)
+        {
+            var claimValues = principal.GetClaims(claimType)
+                .Distinct()
+                .ToImmutableArray();
+            
+            if (claimValues.Length != 1)
+            {
+                throw new InvalidOperationException($"The unique claim type {claimType} was found {claimValues.Length} times.");
+            }
+
+            return claimValues[0];
         }
 
         /// <summary>
