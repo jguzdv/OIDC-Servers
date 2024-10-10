@@ -1,26 +1,20 @@
-﻿using Azure.Core;
-using JGUZDV.OIDC.ProtocolServer.Model;
+﻿using System.Collections.Immutable;
+using System.Globalization;
+using System.Security.Claims;
+
+using JGUZDV.OIDC.ProtocolServer.Configuration;
+using JGUZDV.OIDC.ProtocolServer.Extensions;
+using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
 
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 
-using System.Collections.Immutable;
-
-using System.Globalization;
-
-using System;
-using System.Security.Claims;
-
 using static OpenIddict.Abstractions.OpenIddictConstants;
-using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
-using JGUZDV.OIDC.ProtocolServer.Extensions;
-using Microsoft.Extensions.Options;
-using JGUZDV.OIDC.ProtocolServer.Configuration;
 
 namespace JGUZDV.OIDC.ProtocolServer.Web;
 
