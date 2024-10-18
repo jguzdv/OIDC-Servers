@@ -46,6 +46,11 @@
                             <ClaimList Items="@ScopeProperties!.StaticClaims" />
                         </div>
 
+                        <div>
+                            <h3 class="h4">Resources</h3>
+                            <StringList Items="@ScopeDescriptor.Resources" />
+                        </div>
+
                         <div class="mb-3">
                             <h3 class="h4">MFA</h3>
                             <MfaEditor Value="@ScopeProperties!.MFA" />
@@ -69,7 +74,7 @@
     private bool _createNew;
 
     private OpenIddictScopeDescriptor ScopeDescriptor { get; set; } = new();
-    private ScopeProperties? ScopeProperties { get; set; }
+    private ScopeProperties ScopeProperties { get; set; } = new();
 
     private List<string> Destinations = new() { OpenIddictConstants.Destinations.AccessToken, OpenIddictConstants.Destinations.IdentityToken };
 
