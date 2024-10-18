@@ -18,7 +18,7 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         private readonly IEnumerable<IClaimProvider> _claimProviders = claimProviders;
         private readonly IOptions<ProtocolServerOptions> _options = options;
 
-        //TODO: would probably be better to have this in the options
+        //TODO: would probably be better to have this in the options also, we'll need a way to configure where those "systemic" claims will be placed
         private readonly ISet<string> _remoteClaimTypes = new HashSet<string>()
         {
             Claims.AuthenticationMethodReference,
@@ -37,8 +37,8 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         {
             // Determine, which claims are requested by the client application and to which token they should be added.
             // Also collect "resources" (=> Audience) that are requested by the client application.
-            var idTokenClaims = new HashSet<string>(context.Application.Properties.RequestedClaimTypes);
-            var accessTokenClaims = new HashSet<string>();
+            var idTokenClaims = new HashSet<string>(context.Application.Properties.RequestedClaimTypes.Concat(_remoteClaimTypes));
+            var accessTokenClaims = new HashSet<string>(_remoteClaimTypes);
             var essentialClaims = new HashSet<string>([_options.Value.SubjectClaimType, _options.Value.PersonIdentifierClaimType]);
             var resources = new HashSet<string>();
 
@@ -107,7 +107,7 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
 
         private static IEnumerable<string> GetDestinations(Claim claim, HashSet<string> idTokenClaims, HashSet<string> accessTokenClaims)
         {
-            if(accessTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase) )
+            if(accessTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase))
                 yield return Destinations.AccessToken;
 
             if(idTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase))
