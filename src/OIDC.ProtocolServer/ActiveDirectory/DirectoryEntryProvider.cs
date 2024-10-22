@@ -25,7 +25,9 @@ namespace JGUZDV.OIDC.ProtocolServer.ActiveDirectory
 
         public DirectoryEntry GetUserEntryFromPrincipal(ClaimsPrincipal principal, params string[] propertiesToLoad)
         {
-            var userIdentifier = principal.FindFirstValue(_options.Value.SubjectClaimType) ?? principal.FindFirstValue(Claims.Subject);
+            // This transformation seems odd at first, but it is necessary to decode the user identifier from base64.
+            // This is because ADFS encodes the object guids as base64 strings.
+            var userIdentifier = principal.FindFirst(_options.Value.SubjectClaimType)?.TransformValue(ClaimTransformationMethod.Base64DecodeGuid);
 
             if (string.IsNullOrEmpty(userIdentifier))
             {
@@ -47,7 +49,7 @@ namespace JGUZDV.OIDC.ProtocolServer.ActiveDirectory
                 throw new InvalidOperationException($"The user identifier '{userIdentifier}' seems not to be bindable to AD.");
             }
 
-            return UserEntryHelper.BindDirectoryEntry(_options.Value.LdapServer, bindPath!, propertiesToLoad);
+            return UserEntryHelper.BindDirectoryEntry(_options.Value.ActiveDirectory.LdapServer, bindPath!, propertiesToLoad);
         }
     }
 }
