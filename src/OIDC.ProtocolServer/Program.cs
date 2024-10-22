@@ -3,9 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using JGUZDV.ActiveDirectory;
 using JGUZDV.ActiveDirectory.Configuration;
 using JGUZDV.OIDC.ProtocolServer.ActiveDirectory;
-using JGUZDV.OIDC.ProtocolServer.Authentication;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
-using JGUZDV.OIDC.ProtocolServer.ClaimProviders.JGUDirectory;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
 using JGUZDV.OIDC.ProtocolServer.Model;
 using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
@@ -19,7 +17,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
 
 using OpenIddict.Abstractions;
-using OpenIddict.Server.AspNetCore;
 
 using Constants = JGUZDV.OIDC.ProtocolServer.Constants;
 using OpenIddictConstants = OpenIddict.Abstractions.OpenIddictConstants;
@@ -66,8 +63,6 @@ else
 }
 
 
-services.AddSingleton<CustomOpenIdConnectEvents>();
-
 services.AddAuthentication(options =>
 {
     // Local login will be done via cookies an OIDC from another host.
@@ -82,8 +77,6 @@ services.AddAuthentication(options =>
             builder.Configuration
                 .GetSection("Authentication:OpenIdConnect")
                 .Bind(options);
-
-            options.EventsType = typeof(CustomOpenIdConnectEvents);
         }
     )
 
@@ -97,7 +90,6 @@ services.AddAuthentication(options =>
                 .Bind(options);
 
             options.CallbackPath = "/signin-oidc-mfa";
-            options.EventsType = typeof(CustomOpenIdConnectEvents);
         }
     )
     // We'll use a short lived cookie for the login, since the OIDC server configured above has own lifetimes for cookies.
@@ -109,6 +101,8 @@ services.AddAuthentication(options =>
         options.SlidingExpiration = false;
     })
     .AddCookieDistributedTicketStore();
+
+services.AddTransient<IPostConfigureOptions<OpenIdConnectOptions>, PostConfigureOIDCOptions>();
 
 
 services.AddOpenIddict()
@@ -204,7 +198,6 @@ services
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-
 services.AddScoped<OIDCContextProvider>();
 services.AddScoped<IdentityProvider>();
 
@@ -216,7 +209,7 @@ services.AddClaimProvider();
 services.AddOptions<PropertyReaderOptions>()
     .PostConfigure<IOptions<ProtocolServerOptions>>((readerOptions, serverOptions) =>
     {
-        foreach (var prop in serverOptions.Value.Properties)
+        foreach (var prop in serverOptions.Value.ActiveDirectory.Properties)
         {
             readerOptions.PropertyInfos.Add(
                 prop.Key, 
@@ -239,7 +232,7 @@ services.AddOptions<PropertyReaderOptions>()
 services.AddOptions<ClaimProviderOptions>()
     .PostConfigure<IOptions<ProtocolServerOptions>>((cpOptions, serverOptions) =>
     {
-        foreach (var src in serverOptions.Value.ClaimSources)
+        foreach (var src in serverOptions.Value.ActiveDirectory.ClaimSources)
         {
             cpOptions.ClaimSources.RemoveAll(c => c.ClaimType.Equals(src.ClaimType, StringComparison.OrdinalIgnoreCase));
             cpOptions.ClaimSources.Add(src);
@@ -250,6 +243,7 @@ services.AddOptions<ClaimProviderOptions>()
 services
     .AddClaimProvider<ActiveDirectoryClaimProviderFacade>()
     .AddClaimProvider<JGUDirectoryClaimProvider>()
+    .AddClaimProvider<PrincipalClaimProvider>()
     .AddScoped<UserValidationProvider>();
 
 
