@@ -6,7 +6,7 @@ namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 
 internal class ActiveDirectoryClaimProviderFacade : IClaimProvider
 {
-    public int ExecutionOrder => 1;
+    public int ExecutionOrder => 10;
 
     private readonly DirectoryEntryProvider _directoryEntryProvider;
     private readonly JGUZDV.ActiveDirectory.Claims.IClaimProvider _provider;

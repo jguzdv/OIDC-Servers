@@ -18,12 +18,11 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         private readonly IEnumerable<IClaimProvider> _claimProviders = claimProviders;
         private readonly IOptions<ProtocolServerOptions> _options = options;
 
-        //TODO: would probably be better to have this in the options also, we'll need a way to configure where those "systemic" claims will be placed
-        private readonly ISet<string> _remoteClaimTypes = new HashSet<string>()
-        {
-            Claims.AuthenticationMethodReference,
-            Constants.ClaimTypes.MFAAuthTime
-        };
+        private readonly HashSet<string> _essentialClaims =
+        [
+            options.Value.SubjectClaimType,
+            options.Value.PersonIdentifierClaimType
+        ];
 
         private static readonly IEnumerable<string> IdTokenOnly = [Destinations.IdentityToken];
         private static readonly IEnumerable<string> AccessTokenOnly = [Destinations.AccessToken];
@@ -37,9 +36,8 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         {
             // Determine, which claims are requested by the client application and to which token they should be added.
             // Also collect "resources" (=> Audience) that are requested by the client application.
-            var idTokenClaims = new HashSet<string>(context.Application.Properties.RequestedClaimTypes.Concat(_remoteClaimTypes));
-            var accessTokenClaims = new HashSet<string>(_remoteClaimTypes);
-            var essentialClaims = new HashSet<string>([_options.Value.SubjectClaimType, _options.Value.PersonIdentifierClaimType]);
+            HashSet<string> idTokenClaims = [..context.Application.Properties.RequestedClaimTypes, .._options.Value.DefaultIdTokenClaims];
+            HashSet<string> accessTokenClaims = [.._options.Value.DefaultAccessTokenClaims];
             var resources = new HashSet<string>();
 
             foreach (var scope in context.Scopes)
@@ -54,7 +52,7 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
             }
 
             // Load all claims that are requested by the client application
-            var requestedClaims = new HashSet<string>(idTokenClaims.Concat(accessTokenClaims).Concat(essentialClaims));
+            var requestedClaims = new HashSet<string>(idTokenClaims.Concat(accessTokenClaims).Concat(_essentialClaims));
             var subjectClaims = await LoadSubjectClaims(subjectUser, requestedClaims, ct);
 
 
@@ -70,13 +68,6 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
             // For that, simply restrict the list of scopes before calling SetScopes.
             identity.SetScopes(context.Scopes.Select(x => x.Name));
             identity.SetResources(context.Scopes.SelectMany(x => x.Resources));
-
-
-            // Copy claims from the remote identity to the new identity
-            foreach (var remoteClaim in subjectUser.Claims.Where(x => _remoteClaimTypes.Contains(x.Type)))
-            {
-                identity.AddClaim(remoteClaim.Type, remoteClaim.Value);
-            }
 
             identity.SetClaims(subjectClaims);
 
