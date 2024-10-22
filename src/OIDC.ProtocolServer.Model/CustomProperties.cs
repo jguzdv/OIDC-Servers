@@ -24,6 +24,9 @@ namespace JGUZDV.OIDC.ProtocolServer.Model
 
     public class ApplicationProperties : CustomProperties
     {
+        //Default = 8 hours
+        public int MaxTokenLifetimeSeconds { get; set; } = 28800;
+
         public override JsonElement Serialize()
         {
             return JsonSerializer.SerializeToElement(this);

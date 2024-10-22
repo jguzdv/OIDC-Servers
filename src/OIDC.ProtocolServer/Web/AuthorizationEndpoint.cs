@@ -55,7 +55,7 @@ public static partial class Endpoints
             // If we got this far, the user is authenticated and we can retrieve the user id from the claims.
             // The claims here are "remote" to the application, since they are provided by another authentication provider (see Program.cs).
             var authenticatedUser = httpContext.User;
-            var subject = GetUniqueClaimValue(authenticatedUser, options.Value.SubjectClaimType);
+            var subject = GetUniqueClaimValue(authenticatedUser, options.Value.RemotePrincipalClaimType);
 
 
             // We might have application that are configured to ask for user consent. If this function returns an action result, we'll return it.
@@ -68,6 +68,7 @@ public static partial class Endpoints
 
             // Create the claims-based identity that will be used by OpenIddict to generate tokens.
             var identity = await identityProvider.CreateIdentityAsync(authenticatedUser, oidcContext, ct);
+            identity.SetIdentityTokenLifetime(TimeSpan.FromSeconds(oidcContext.Application.Properties.MaxTokenLifetimeSeconds));
 
             // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
             return Results.SignIn(new ClaimsPrincipal(identity), authenticationScheme: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);

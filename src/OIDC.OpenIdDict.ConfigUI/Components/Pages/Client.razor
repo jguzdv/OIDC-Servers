@@ -105,6 +105,10 @@
                             <h3 class="h4">Static claims</h3>
                             <ClaimList Items="@ApplicationProperties.StaticClaims" />
                         </div>
+                        <div class="mb-3">
+                            <h3 class="h4">Token Lifetime</h3>
+                            <input type="number" @bind="@ApplicationProperties.MaxTokenLifetimeSeconds" class="form-control" />
+                        </div>
 
                         <div class="mb-3">
                             <h3 class="h4">MFA</h3>
