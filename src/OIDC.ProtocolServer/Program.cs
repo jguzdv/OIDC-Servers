@@ -3,6 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using JGUZDV.ActiveDirectory;
 using JGUZDV.ActiveDirectory.Configuration;
 using JGUZDV.OIDC.ProtocolServer.ActiveDirectory;
+using JGUZDV.OIDC.ProtocolServer.Authentication;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
 using JGUZDV.OIDC.ProtocolServer.Model;
@@ -77,6 +78,8 @@ services.AddAuthentication(options =>
             builder.Configuration
                 .GetSection("Authentication:OpenIdConnect")
                 .Bind(options);
+
+            options.EventsType = typeof(CustomOpenIdConnectEvents);
         }
     )
 
@@ -90,6 +93,7 @@ services.AddAuthentication(options =>
                 .Bind(options);
 
             options.CallbackPath = "/signin-oidc-mfa";
+            options.EventsType = typeof(CustomOpenIdConnectEvents);
         }
     )
     // We'll use a short lived cookie for the login, since the OIDC server configured above has own lifetimes for cookies.
