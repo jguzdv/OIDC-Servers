@@ -79,7 +79,8 @@ services.AddAuthentication(options =>
                 .GetSection("Authentication:OpenIdConnect")
                 .Bind(options);
 
-            options.EventsType = typeof(CustomOpenIdConnectEvents);
+            // This allows us to distinguish between the remote OIDC login at the provider and the local login.
+            options.TokenValidationParameters.AuthenticationType = Constants.AuthenticationTypes.RemoteOIDC;
         }
     )
 
@@ -93,7 +94,9 @@ services.AddAuthentication(options =>
                 .Bind(options);
 
             options.CallbackPath = "/signin-oidc-mfa";
-            options.EventsType = typeof(CustomOpenIdConnectEvents);
+
+            // This allows us to distinguish between the remote OIDC login at the provider and the local login.
+            options.TokenValidationParameters.AuthenticationType = Constants.AuthenticationTypes.RemoteOIDC;
         }
     )
     // We'll use a short lived cookie for the login, since the OIDC server configured above has own lifetimes for cookies.

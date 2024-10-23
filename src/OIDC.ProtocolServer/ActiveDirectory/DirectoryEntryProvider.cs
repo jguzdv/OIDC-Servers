@@ -25,9 +25,12 @@ namespace JGUZDV.OIDC.ProtocolServer.ActiveDirectory
 
         public DirectoryEntry GetUserEntryFromPrincipal(ClaimsPrincipal principal, params string[] propertiesToLoad)
         {
-            // This transformation seems odd at first, but it is necessary to decode the user identifier from base64.
-            // This is because ADFS encodes the object guids as base64 strings.
-            var userIdentifier = principal.FindFirst(_options.Value.SubjectClaimType)?.TransformValue(ClaimTransformationMethod.Base64DecodeGuid);
+            // TODO: Make this a configurable list e.g. authenticationType -> ClaimType
+            var userIdentifier = string.Equals(principal.Identity?.AuthenticationType, Constants.AuthenticationTypes.RemoteOIDC)
+                    // ADFS will provide 'zdv_sub' as a claim in the principal
+                ? principal.FindFirst(_options.Value.SubjectClaimType)?.TransformValue(ClaimTransformationMethod.Base64DecodeGuid)
+                    // OpenIddict will provide 'sub' as a claim in the principal
+                : principal.FindFirstValue(Claims.Subject);
 
             if (string.IsNullOrEmpty(userIdentifier))
             {

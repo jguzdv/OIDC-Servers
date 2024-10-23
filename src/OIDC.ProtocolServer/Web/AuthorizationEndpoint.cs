@@ -55,7 +55,7 @@ public static partial class Endpoints
             // If we got this far, the user is authenticated and we can retrieve the user id from the claims.
             // The claims here are "remote" to the application, since they are provided by another authentication provider (see Program.cs).
             var authenticatedUser = httpContext.User;
-            var subject = GetUniqueClaimValue(authenticatedUser, options.Value.RemotePrincipalClaimType);
+            var subject = GetUniqueClaimValue(authenticatedUser, options.Value.SubjectClaimType);
 
 
             // We might have application that are configured to ask for user consent. If this function returns an action result, we'll return it.
