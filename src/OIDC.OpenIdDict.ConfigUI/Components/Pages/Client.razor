@@ -201,12 +201,6 @@
         EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Revocation, "Revocation"));
         EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Token, "Token"));
 
-        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Profile, "Profile"));
-        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Roles, "Roles"));
-        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Email, "Email"));
-        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Phone, "Phone"));
-        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Address, "Address"));
-
         // Load all scopes
         var scopes = _scopeManager.ListAsync();
 
@@ -244,10 +238,20 @@
         else
         {
             ApplicationDescriptor = new()
+            {
+                ApplicationType = OpenIddictConstants.ApplicationTypes.Web,
+                ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
+                Permissions =
                 {
-                    ApplicationType = OpenIddictConstants.ApplicationTypes.Web,
-                    ConsentType = OpenIddictConstants.ConsentTypes.Implicit
-                };
+                    OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
+                    OpenIddictConstants.Permissions.ResponseTypes.Code,
+                    OpenIddictConstants.Permissions.Endpoints.Authorization,
+                    OpenIddictConstants.Permissions.Endpoints.Logout,
+                    OpenIddictConstants.Permissions.Endpoints.Token,
+
+                    OpenIddictConstants.Permissions.Prefixes.Scope + "openid",
+                }
+            };
             ApplicationProperties = new ApplicationProperties();
         }
     }
