@@ -53,8 +53,7 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
 
             // Load all claims that are requested by the client application
             var requestedClaims = new HashSet<string>(idTokenClaims.Concat(accessTokenClaims).Concat(_essentialClaims));
-            var subjectClaims = await LoadUserClaims(subjectUser, requestedClaims, ct);
-
+            var userClaims = await LoadUserClaims(subjectUser, requestedClaims, ct);
 
             // Create the claims-based identity that will be used by OpenIddict to generate tokens.
             var identity = new ClaimsIdentity(
@@ -69,18 +68,18 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
             identity.SetScopes(context.Scopes.Select(x => x.Name));
             identity.SetResources(context.Scopes.SelectMany(x => x.Resources));
 
-            identity.SetClaims(subjectClaims);
+            // Add all static claims
+            var staticClaims = GetStaticClaimsAndUpdateClaimSets(context, idTokenClaims, accessTokenClaims);
+            userClaims.AddRange(staticClaims);
 
-            // Currently _all_ claims will be added to the access token and _some_ claims will be added to the id token.
+            // Add all claims to the identity and set their destinations
+            identity.SetClaims(userClaims);
             identity.SetDestinations(c => GetDestinations(c, idTokenClaims, accessTokenClaims));
-
-            // Add static claims from application and scopes
-            AddStaticClaims(identity, context);
 
             return identity;
         }
 
-
+        
         private async Task<List<Model.Claim>> LoadUserClaims(ClaimsPrincipal user, HashSet<string> requestedClaimTypes, CancellationToken ct)
         {
             var userClaims = new List<Model.Claim>();
@@ -109,25 +108,27 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         }
 
 
-        private static void AddStaticClaims(ClaimsIdentity identity, OIDCContext context)
+        private IEnumerable<Model.Claim> GetStaticClaimsAndUpdateClaimSets(
+            OIDCContext context,
+            HashSet<string> idTokenClaims,
+            HashSet<string> accessTokenClaims)
         {
-            AddStaticClaims(identity, context.Application.Properties.StaticClaims, [Destinations.IdentityToken]);
+            var result = new List<Model.Claim>();
 
-            foreach(var scope in context.Scopes)
-            {
-                AddStaticClaims(identity, scope.Properties.StaticClaims, scope.Properties.TargetToken);
+            result.AddRange(GetStaticClaimsFromProps(context.Application.Properties.StaticClaims, idTokenClaims));
+            
+            foreach (var scope in context.Scopes) {
+                result.AddRange(GetStaticClaimsFromProps(scope.Properties.StaticClaims, accessTokenClaims));
             }
+
+            return result;
         }
 
-        private static void AddStaticClaims(ClaimsIdentity identity, List<Model.Claim> staticClaims, HashSet<string> targetTokens)
-        {
-            var additionalClaims = staticClaims.Select(x => new Claim(x.Type, x.Value, ClaimValueTypes.String));
-            foreach(var claim in additionalClaims)
-            {
-                claim.SetDestinations(targetTokens);
-            }
 
-            identity.AddClaims(additionalClaims);
+        private static IEnumerable<Model.Claim> GetStaticClaimsFromProps(List<Model.Claim> staticClaims, HashSet<string> claimTypeList)
+        {
+            claimTypeList.UnionWith(staticClaims.Select(x => x.Type));
+            return staticClaims;
         }
     }
 }
