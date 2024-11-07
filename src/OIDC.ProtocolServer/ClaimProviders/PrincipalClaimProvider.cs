@@ -4,8 +4,6 @@ using JGUZDV.OIDC.ProtocolServer.Configuration;
 
 using Microsoft.Extensions.Options;
 
-using static JGUZDV.OIDC.ProtocolServer.Configuration.PrincipalClaimProviderOptions.PrincipalClaimType;
-
 namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 
 /// <summary>
