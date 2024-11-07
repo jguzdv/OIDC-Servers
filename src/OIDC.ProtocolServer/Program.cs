@@ -10,6 +10,7 @@ using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
 using JGUZDV.OIDC.ProtocolServer.Web;
 using JGUZDV.OpenIddict.KeyManager.Configuration;
 
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
@@ -78,6 +79,9 @@ services.AddAuthentication(options =>
                 .GetSection("Authentication:OpenIdConnect")
                 .Bind(options);
 
+            // We want to be able to map all incomming claims, since we read them in PrincipalClaimProvider.
+            options.ClaimActions.MapAll();
+            
             // This allows us to distinguish between the remote OIDC login at the provider and the local login.
             options.TokenValidationParameters.AuthenticationType = Constants.AuthenticationTypes.RemoteOIDC;
         }
@@ -93,6 +97,9 @@ services.AddAuthentication(options =>
                 .Bind(options);
 
             options.CallbackPath = "/signin-oidc-mfa";
+
+            // We want to be able to map all incomming claims, since we read them in PrincipalClaimProvider.
+            options.ClaimActions.MapAll();
 
             // This allows us to distinguish between the remote OIDC login at the provider and the local login.
             options.TokenValidationParameters.AuthenticationType = Constants.AuthenticationTypes.RemoteOIDC;
