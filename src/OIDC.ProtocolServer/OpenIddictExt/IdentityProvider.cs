@@ -53,7 +53,7 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
 
             // Load all claims that are requested by the client application
             var requestedClaims = new HashSet<string>(idTokenClaims.Concat(accessTokenClaims).Concat(_essentialClaims));
-            var subjectClaims = await LoadSubjectClaims(subjectUser, requestedClaims, ct);
+            var subjectClaims = await LoadUserClaims(subjectUser, requestedClaims, ct);
 
 
             // Create the claims-based identity that will be used by OpenIddict to generate tokens.
@@ -78,7 +78,7 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         }
 
 
-        private async Task<List<Model.Claim>> LoadSubjectClaims(ClaimsPrincipal subject, HashSet<string> requestedClaimTypes, CancellationToken ct)
+        private async Task<List<Model.Claim>> LoadUserClaims(ClaimsPrincipal user, HashSet<string> requestedClaimTypes, CancellationToken ct)
         {
             var userClaims = new List<Model.Claim>();
             foreach (var cp in _claimProviders.OrderBy(x => x.ExecutionOrder))
@@ -88,7 +88,7 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
                     continue;
                 }
 
-                var claims = await cp.GetClaimsAsync(subject, userClaims, requestedClaimTypes, ct);
+                var claims = await cp.GetClaimsAsync(user, userClaims, requestedClaimTypes, ct);
                 userClaims.AddRange(claims.Select(x => new Model.Claim(x.Type, x.Value)));
             }
 
