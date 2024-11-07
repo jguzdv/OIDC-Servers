@@ -74,6 +74,9 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
             // Currently _all_ claims will be added to the access token and _some_ claims will be added to the id token.
             identity.SetDestinations(c => GetDestinations(c, idTokenClaims, accessTokenClaims));
 
+            // Add static claims from application and scopes
+            AddStaticClaims(identity, context);
+
             return identity;
         }
 
@@ -103,6 +106,28 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
 
             if(idTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase))
                 yield return Destinations.IdentityToken;
+        }
+
+
+        private static void AddStaticClaims(ClaimsIdentity identity, OIDCContext context)
+        {
+            AddStaticClaims(identity, context.Application.Properties.StaticClaims, [Destinations.IdentityToken]);
+
+            foreach(var scope in context.Scopes)
+            {
+                AddStaticClaims(identity, scope.Properties.StaticClaims, scope.Properties.TargetToken);
+            }
+        }
+
+        private static void AddStaticClaims(ClaimsIdentity identity, List<Model.Claim> staticClaims, HashSet<string> targetTokens)
+        {
+            var additionalClaims = staticClaims.Select(x => new Claim(x.Type, x.Value, ClaimValueTypes.String));
+            foreach(var claim in additionalClaims)
+            {
+                claim.SetDestinations(targetTokens);
+            }
+
+            identity.AddClaims(additionalClaims);
         }
     }
 }

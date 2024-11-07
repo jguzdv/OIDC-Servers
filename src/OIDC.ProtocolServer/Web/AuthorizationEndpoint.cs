@@ -74,6 +74,7 @@ public static partial class Endpoints
             return Results.SignIn(new ClaimsPrincipal(identity), authenticationScheme: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
+
         private static string GetUniqueClaimValue(ClaimsPrincipal principal, string claimType)
         {
             var claimValues = principal.GetClaims(claimType)
