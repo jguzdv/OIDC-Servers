@@ -24,11 +24,6 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
             options.Value.PersonIdentifierClaimType
         ];
 
-        private static readonly IEnumerable<string> IdTokenOnly = [Destinations.IdentityToken];
-        private static readonly IEnumerable<string> AccessTokenOnly = [Destinations.AccessToken];
-        private static readonly IEnumerable<string> BothTokens = [Destinations.IdentityToken, Destinations.AccessToken];
-
-
         public async Task<ClaimsIdentity> CreateIdentityAsync(
             ClaimsPrincipal subjectUser,
             OIDCContext context,
@@ -80,7 +75,7 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         }
 
         
-        private async Task<List<Model.Claim>> LoadUserClaims(ClaimsPrincipal user, HashSet<string> requestedClaimTypes, CancellationToken ct)
+        public async Task<List<Model.Claim>> LoadUserClaims(ClaimsPrincipal user, HashSet<string> requestedClaimTypes, CancellationToken ct)
         {
             var userClaims = new List<Model.Claim>();
             foreach (var cp in _claimProviders.OrderBy(x => x.ExecutionOrder))
@@ -98,13 +93,30 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         }
 
 
+
+        private static readonly IEnumerable<string> IdTokenOnly = [Destinations.IdentityToken];
+        private static readonly IEnumerable<string> AccessTokenOnly = [Destinations.AccessToken];
+        private static readonly IEnumerable<string> BothTokens = [Destinations.IdentityToken, Destinations.AccessToken];
+
         private static IEnumerable<string> GetDestinations(Claim claim, HashSet<string> idTokenClaims, HashSet<string> accessTokenClaims)
         {
-            if(accessTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase))
-                yield return Destinations.AccessToken;
+            if (accessTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase))
+            {
+                if (idTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase))
+                {
+                    return BothTokens;
+                }
+                
+                return AccessTokenOnly;
+            }
 
-            if(idTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase))
-                yield return Destinations.IdentityToken;
+
+            if (idTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase))
+            {
+                return IdTokenOnly;
+            }
+
+            return [];
         }
 
 
