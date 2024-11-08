@@ -15,6 +15,18 @@
             </div>
         }
     </div>
+
+    @if (Items.Count > 3)
+    {
+        @if (!ShowAllItems)
+        {
+            <i class="fas fa-ellipsis-h"></i>
+        }
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="showAllRedirectUris" @onclick=@(() => ShowAllItems = !ShowAllItems) checked="@ShowAllItems">
+            <label class="form-check-label" for="showAllRedirectUris">Show all created Redirect Uris</label>
+        </div>
+    }
 </div>
 
 @code {
