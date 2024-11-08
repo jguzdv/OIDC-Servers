@@ -51,7 +51,7 @@ namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders
             var personUuidClaim = knownClaims.FirstOrDefault(x => x.Type == _options.Value.PersonIdentifierClaimType);
             if (personUuidClaim == null)
             {
-                _logger.LogWarning("Could not find PersonUuid-Claim. Existing claims were: {0}", string.Join(", ", knownClaims.Select(x => $"{x.Type}: {x.Value}")));
+                _logger.LogWarning("Could not find {type}. Existing claims were: {claims}", _options.Value.PersonIdentifierClaimType, string.Join(", ", knownClaims.Select(x => $"{x.Type}: {x.Value}")));
                 return result;
             }
 
