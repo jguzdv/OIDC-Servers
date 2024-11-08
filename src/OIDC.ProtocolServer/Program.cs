@@ -3,23 +3,22 @@ using System.IdentityModel.Tokens.Jwt;
 using JGUZDV.ActiveDirectory;
 using JGUZDV.ActiveDirectory.Configuration;
 using JGUZDV.OIDC.ProtocolServer.ActiveDirectory;
-using JGUZDV.OIDC.ProtocolServer.Authentication;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
-using JGUZDV.OIDC.ProtocolServer.ClaimProviders.JGUDirectory;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
 using JGUZDV.OIDC.ProtocolServer.Model;
 using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
 using JGUZDV.OIDC.ProtocolServer.Web;
 using JGUZDV.OpenIddict.KeyManager.Configuration;
 
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
 
 using OpenIddict.Abstractions;
-using OpenIddict.Server.AspNetCore;
 
 using Constants = JGUZDV.OIDC.ProtocolServer.Constants;
 using OpenIddictConstants = OpenIddict.Abstractions.OpenIddictConstants;
@@ -66,8 +65,6 @@ else
 }
 
 
-services.AddSingleton<CustomOpenIdConnectEvents>();
-
 services.AddAuthentication(options =>
 {
     // Local login will be done via cookies an OIDC from another host.
@@ -83,7 +80,11 @@ services.AddAuthentication(options =>
                 .GetSection("Authentication:OpenIdConnect")
                 .Bind(options);
 
-            options.EventsType = typeof(CustomOpenIdConnectEvents);
+            // We want to be able to map all incomming claims, since we read them in PrincipalClaimProvider.
+            options.ClaimActions.MapAll();
+
+            // This allows us to distinguish between the remote OIDC login at the provider and the local login.
+            options.TokenValidationParameters.AuthenticationType = Constants.AuthenticationTypes.RemoteOIDC;
         }
     )
 
@@ -97,7 +98,12 @@ services.AddAuthentication(options =>
                 .Bind(options);
 
             options.CallbackPath = "/signin-oidc-mfa";
-            options.EventsType = typeof(CustomOpenIdConnectEvents);
+
+            // We want to be able to map all incomming claims, since we read them in PrincipalClaimProvider.
+            options.ClaimActions.MapAll();
+
+            // This allows us to distinguish between the remote OIDC login at the provider and the local login.
+            options.TokenValidationParameters.AuthenticationType = Constants.AuthenticationTypes.RemoteOIDC;
         }
     )
     // We'll use a short lived cookie for the login, since the OIDC server configured above has own lifetimes for cookies.
@@ -109,6 +115,8 @@ services.AddAuthentication(options =>
         options.SlidingExpiration = false;
     })
     .AddCookieDistributedTicketStore();
+
+services.AddTransient<IPostConfigureOptions<OpenIdConnectOptions>, PostConfigureOIDCOptions>();
 
 
 services.AddOpenIddict()
@@ -204,7 +212,6 @@ services
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-
 services.AddScoped<OIDCContextProvider>();
 services.AddScoped<IdentityProvider>();
 
@@ -216,12 +223,12 @@ services.AddClaimProvider();
 services.AddOptions<PropertyReaderOptions>()
     .PostConfigure<IOptions<ProtocolServerOptions>>((readerOptions, serverOptions) =>
     {
-        foreach (var prop in serverOptions.Value.Properties)
+        foreach (var prop in serverOptions.Value.ActiveDirectory.Properties)
         {
             readerOptions.PropertyInfos.Add(
-                prop.Key, 
+                prop.Key,
                 new(
-                    prop.Key, 
+                    prop.Key,
                     prop.Value switch
                     {
                         "int" => typeof(int),
@@ -239,7 +246,7 @@ services.AddOptions<PropertyReaderOptions>()
 services.AddOptions<ClaimProviderOptions>()
     .PostConfigure<IOptions<ProtocolServerOptions>>((cpOptions, serverOptions) =>
     {
-        foreach (var src in serverOptions.Value.ClaimSources)
+        foreach (var src in serverOptions.Value.ActiveDirectory.ClaimSources)
         {
             cpOptions.ClaimSources.RemoveAll(c => c.ClaimType.Equals(src.ClaimType, StringComparison.OrdinalIgnoreCase));
             cpOptions.ClaimSources.Add(src);
@@ -250,6 +257,7 @@ services.AddOptions<ClaimProviderOptions>()
 services
     .AddClaimProvider<ActiveDirectoryClaimProviderFacade>()
     .AddClaimProvider<JGUDirectoryClaimProvider>()
+    .AddClaimProvider<PrincipalClaimProvider>()
     .AddScoped<UserValidationProvider>();
 
 
@@ -257,14 +265,38 @@ services
 
 var app = builder.Build();
 
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsProduction())
 {
     app.UseExceptionHandler("/Error");
-    app.UseHsts();
 }
 else
 {
     app.UseDeveloperExceptionPage();
+}
+
+app.UseExceptionHandler(
+    appError =>
+    {
+        appError.UseWhen(
+            context =>
+            {
+                var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
+                return
+                    exceptionHandlerFeature?.Error?.InnerException is AuthenticationFailureException authEx &&
+                    authEx.Message.Contains("Correlation", StringComparison.OrdinalIgnoreCase);
+            },
+            correlationError => correlationError.Run(context =>
+            {
+                context.Response.Redirect("/Error/Correlation");
+                return Task.CompletedTask;
+            })
+        );
+    }
+);
+
+if (app.Environment.IsProduction())
+{
+    app.UseHsts();
 }
 
 app.UseHttpsRedirection();
@@ -274,6 +306,7 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
 
 // This is mainly the HomeController, that will render some views.
 app.MapControllers();

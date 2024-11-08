@@ -124,6 +124,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Web
                     
                     // Recreate the identity
                     var identity = await identityProvider.CreateIdentityAsync(authenticatedUser, oidcContext, ct);
+                    identity.SetIdentityTokenLifetime(TimeSpan.FromSeconds(oidcContext.Application.Properties.MaxTokenLifetimeSeconds));
 
                     // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
                     return SignIn(new ClaimsPrincipal(identity));

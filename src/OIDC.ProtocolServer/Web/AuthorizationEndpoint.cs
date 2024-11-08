@@ -1,26 +1,20 @@
-﻿using Azure.Core;
-using JGUZDV.OIDC.ProtocolServer.Model;
+﻿using System.Collections.Immutable;
+using System.Globalization;
+using System.Security.Claims;
+
+using JGUZDV.OIDC.ProtocolServer.Configuration;
+using JGUZDV.OIDC.ProtocolServer.Extensions;
+using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
 
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 
-using System.Collections.Immutable;
-
-using System.Globalization;
-
-using System;
-using System.Security.Claims;
-
 using static OpenIddict.Abstractions.OpenIddictConstants;
-using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
-using JGUZDV.OIDC.ProtocolServer.Extensions;
-using Microsoft.Extensions.Options;
-using JGUZDV.OIDC.ProtocolServer.Configuration;
 
 namespace JGUZDV.OIDC.ProtocolServer.Web;
 
@@ -61,8 +55,7 @@ public static partial class Endpoints
             // If we got this far, the user is authenticated and we can retrieve the user id from the claims.
             // The claims here are "remote" to the application, since they are provided by another authentication provider (see Program.cs).
             var authenticatedUser = httpContext.User;
-            var subject = authenticatedUser.GetClaim(options.Value.SubjectClaimType) ??
-                throw new InvalidOperationException($"The user is missing the claim {options.Value.SubjectClaimType}.");
+            var subject = GetUniqueClaimValue(authenticatedUser, options.Value.SubjectClaimType);
 
 
             // We might have application that are configured to ask for user consent. If this function returns an action result, we'll return it.
@@ -75,9 +68,25 @@ public static partial class Endpoints
 
             // Create the claims-based identity that will be used by OpenIddict to generate tokens.
             var identity = await identityProvider.CreateIdentityAsync(authenticatedUser, oidcContext, ct);
+            identity.SetIdentityTokenLifetime(TimeSpan.FromSeconds(oidcContext.Application.Properties.MaxTokenLifetimeSeconds));
 
             // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
             return Results.SignIn(new ClaimsPrincipal(identity), authenticationScheme: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        }
+
+
+        private static string GetUniqueClaimValue(ClaimsPrincipal principal, string claimType)
+        {
+            var claimValues = principal.GetClaims(claimType)
+                .Distinct()
+                .ToImmutableArray();
+            
+            if (claimValues.Length != 1)
+            {
+                throw new InvalidOperationException($"The unique claim type {claimType} was found {claimValues.Length} times.");
+            }
+
+            return claimValues[0];
         }
 
         /// <summary>

@@ -105,6 +105,10 @@
                             <h3 class="h4">Static claims</h3>
                             <ClaimList Items="@ApplicationProperties.StaticClaims" />
                         </div>
+                        <div class="mb-3">
+                            <h3 class="h4">Token Lifetime</h3>
+                            <input type="number" @bind="@ApplicationProperties.MaxTokenLifetimeSeconds" class="form-control" />
+                        </div>
 
                         <div class="mb-3">
                             <h3 class="h4">MFA</h3>
@@ -114,32 +118,10 @@
                         <div class="mb-3">
                             <h3 class="h4">Redirect Uris</h3>
                             <UriList Items="@ApplicationDescriptor.RedirectUris" ShowAllItems="@_showAllRedirectUris" />
-                            @if (ApplicationDescriptor.RedirectUris.Count > 3)
-                            {
-                                @if (!_showAllRedirectUris)
-                                {
-                                    <i class="fas fa-ellipsis-h"></i>
-                                }
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="showAllRedirectUris" @onclick=@(() => _showAllRedirectUris = !_showAllRedirectUris) checked="@_showAllRedirectUris">
-                                    <label class="form-check-label" for="showAllRedirectUris">Show all created Redirect Uris</label>
-                                </div>
-                            }
                         </div>
                         <div class="mb-3">
                             <h3 class="h4">Post-logout Redirect Uris</h3>
                             <UriList Items="@ApplicationDescriptor.PostLogoutRedirectUris" ShowAllItems="@_showAllPLRedirectUris" />
-                            @if (ApplicationDescriptor.PostLogoutRedirectUris.Count > 3)
-                            {
-                                @if (!_showAllPLRedirectUris)
-                                {
-                                    <i class="fas fa-ellipsis-h"></i>
-                                }
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="showAllPostLogoutRedirectUris" @onclick=@(() => _showAllPLRedirectUris = !_showAllPLRedirectUris) checked="@_showAllPLRedirectUris">
-                                    <label class="form-check-label" for="showAllPostLogoutRedirectUris">Show all created Post-logout Redirect Uris</label>
-                                </div>
-                            }
                         </div>
                     </div>
                 </div>
@@ -197,12 +179,6 @@
         EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Revocation, "Revocation"));
         EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Token, "Token"));
 
-        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Profile, "Profile"));
-        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Roles, "Roles"));
-        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Email, "Email"));
-        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Phone, "Phone"));
-        ScopePermissions.Add((OpenIddictConstants.Permissions.Scopes.Address, "Address"));
-
         // Load all scopes
         var scopes = _scopeManager.ListAsync();
 
@@ -240,12 +216,25 @@
         else
         {
             ApplicationDescriptor = new()
+            {
+                ApplicationType = OpenIddictConstants.ApplicationTypes.Web,
+                ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
+                Permissions =
                 {
-                    ApplicationType = OpenIddictConstants.ApplicationTypes.Web,
-                    ConsentType = OpenIddictConstants.ConsentTypes.Implicit
-                };
+                    OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
+                    OpenIddictConstants.Permissions.ResponseTypes.Code,
+                    OpenIddictConstants.Permissions.Endpoints.Authorization,
+                    OpenIddictConstants.Permissions.Endpoints.Logout,
+                    OpenIddictConstants.Permissions.Endpoints.Token,
+
+                    OpenIddictConstants.Permissions.Prefixes.Scope + "openid",
+                }
+            };
             ApplicationProperties = new ApplicationProperties();
         }
+
+        _showAllRedirectUris = ApplicationDescriptor.RedirectUris.Count() <= 3;
+        _showAllPLRedirectUris = ApplicationDescriptor.PostLogoutRedirectUris.Count() <= 3;
     }
 
 

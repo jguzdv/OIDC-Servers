@@ -2,6 +2,7 @@
 
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Model;
+using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
 
 using Microsoft.AspNetCore.Authentication;
 
@@ -19,7 +20,7 @@ public partial class Endpoints
         public static async Task<IResult> UserInfo(
             HttpContext httpContext,
             IOpenIddictScopeManager scopeManager,
-            IEnumerable<IClaimProvider> claimProviders,
+            IdentityProvider identityProvider,
             CancellationToken ct)
         {
             var authResult = await httpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
@@ -49,11 +50,8 @@ public partial class Endpoints
                 new(Claims.Subject, userSubject)
             };
 
-            foreach (var cp in claimProviders)
-            {
-                var claims = await cp.GetClaimsAsync(user, userClaims, idClaims.Distinct(), ct);
-                userClaims.AddRange(claims);
-            }
+            var moreClaims = await identityProvider.LoadUserClaims(user, idClaims, ct);
+            userClaims.AddRange(moreClaims);
 
             // OpenIddict will accept userinfo claims as a dictionary<string, object>
             // Since multiple claim providers might produce the same type, we'll group them by type

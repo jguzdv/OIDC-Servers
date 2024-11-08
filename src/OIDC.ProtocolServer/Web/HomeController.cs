@@ -20,6 +20,12 @@ namespace JGUZDV.OIDC.ProtocolServer.Web
             return View(new ErrorModel(HttpContext));
         }
 
+        [HttpGet("~/Error/Correlation")]
+        public IActionResult CorrelationError()
+        {
+            return View();
+        }
+
         [HttpGet("~/self")]
         [Authorize]
         public async Task<IActionResult> WhoAmI()

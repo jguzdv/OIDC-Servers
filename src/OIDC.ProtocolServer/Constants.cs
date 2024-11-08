@@ -7,7 +7,12 @@ namespace JGUZDV.OIDC.ProtocolServer
         public static class AuthenticationSchemes
         {
             public const string OIDC = OpenIdConnectDefaults.AuthenticationScheme;
-            public const string MFA = "OpenIdConnect-MFA";
+            public const string MFA = OpenIdConnectDefaults.AuthenticationScheme + "-MFA";
+        }
+
+        public static class AuthenticationTypes
+        {
+            public const string RemoteOIDC = "AuthenticationTypes.RemoteOIDC";
         }
 
         public static class ClaimTypes

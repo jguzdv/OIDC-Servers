@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Logging;
@@ -34,10 +35,12 @@ builder.Services.AddAuthentication(options =>
                 options.Scope.Clear();
                 options.Scope.Add("openid");
                 options.Scope.Add("offline_access");
+
+                options.ClaimActions.MapAll();
             })
             .AddCookie(options =>
             {
-                options.ExpireTimeSpan = TimeSpan.FromMinutes(5);
+                options.ExpireTimeSpan = TimeSpan.FromMinutes(1);
                 options.SlidingExpiration = false;
             });
 

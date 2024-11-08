@@ -25,7 +25,12 @@ namespace JGUZDV.OIDC.ProtocolServer.ActiveDirectory
 
         public DirectoryEntry GetUserEntryFromPrincipal(ClaimsPrincipal principal, params string[] propertiesToLoad)
         {
-            var userIdentifier = principal.FindFirstValue(_options.Value.SubjectClaimType) ?? principal.FindFirstValue(Claims.Subject);
+            // TODO: Make this a configurable list e.g. authenticationType -> ClaimType
+            var userIdentifier = string.Equals(principal.Identity?.AuthenticationType, Constants.AuthenticationTypes.RemoteOIDC)
+                    // ADFS will provide 'zdv_sub' as a claim in the principal
+                ? principal.FindFirst(_options.Value.SubjectClaimType)?.TransformValue(ClaimTransformationMethod.Base64DecodeGuid)
+                    // OpenIddict will provide 'sub' as a claim in the principal
+                : principal.FindFirstValue(Claims.Subject);
 
             if (string.IsNullOrEmpty(userIdentifier))
             {
@@ -47,7 +52,7 @@ namespace JGUZDV.OIDC.ProtocolServer.ActiveDirectory
                 throw new InvalidOperationException($"The user identifier '{userIdentifier}' seems not to be bindable to AD.");
             }
 
-            return UserEntryHelper.BindDirectoryEntry(_options.Value.LdapServer, bindPath!, propertiesToLoad);
+            return UserEntryHelper.BindDirectoryEntry(_options.Value.ActiveDirectory.LdapServer, bindPath!, propertiesToLoad);
         }
     }
 }

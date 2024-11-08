@@ -4,10 +4,11 @@ using JGUZDV.OIDC.ProtocolServer.Configuration;
 
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
+
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 
-namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders.JGUDirectory
+namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders
 {
     internal class JGUDirectoryClaimProvider : IClaimProvider
     {
@@ -29,13 +30,13 @@ namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders.JGUDirectory
         {
             _options = options;
             _logger = logger;
-            _sqlConnection = new SqlConnection(options.Value.JGUDirectoryDatabaseConnectionString);
+            _sqlConnection = new SqlConnection(options.Value.JGUDirectory.DatabaseConnectionString);
         }
 
         public async Task<List<Model.Claim>> GetClaimsAsync(
             ClaimsPrincipal currentUser,
             IEnumerable<Model.Claim> knownClaims,
-            IEnumerable<string> claimTypes, 
+            IEnumerable<string> claimTypes,
             CancellationToken ct)
         {
             var processableClaimTypes = claimTypes
