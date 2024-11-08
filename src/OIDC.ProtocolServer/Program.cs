@@ -274,25 +274,20 @@ else
     app.UseDeveloperExceptionPage();
 }
 
-app.UseExceptionHandler(
-    appError =>
+// This middleware filters AuthenticationFailureExceptions with "correlation failed"
+app.Use(async (context, next) =>
+{
+    try
     {
-        appError.UseWhen(
-            context =>
-            {
-                var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
-                return
-                    exceptionHandlerFeature?.Error?.InnerException is AuthenticationFailureException authEx &&
-                    authEx.Message.Contains("Correlation", StringComparison.OrdinalIgnoreCase);
-            },
-            correlationError => correlationError.Run(context =>
-            {
-                context.Response.Redirect("/Error/Correlation");
-                return Task.CompletedTask;
-            })
-        );
+        await next();
     }
-);
+    catch (AuthenticationFailureException ex)
+        when (ex.InnerException?.Message.Contains("Correlation", StringComparison.OrdinalIgnoreCase) == true)
+    {
+        context.Response.Redirect("/Error/Correlation");
+        return;
+    }
+});
 
 if (app.Environment.IsProduction())
 {
@@ -331,7 +326,6 @@ connect.MapMethods("/userinfo", [HttpMethods.Get, HttpMethods.Post], Endpoints.O
     .Produces(200, contentType: "application/json");
 
 //connect.MapPost("/endsession", Endpoints.OIDC.EndSession);
-
 
 app.Run();
 
