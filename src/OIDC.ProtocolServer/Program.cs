@@ -13,6 +13,7 @@ using JGUZDV.OpenIddict.KeyManager.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
@@ -81,7 +82,7 @@ services.AddAuthentication(options =>
 
             // We want to be able to map all incomming claims, since we read them in PrincipalClaimProvider.
             options.ClaimActions.MapAll();
-            
+
             // This allows us to distinguish between the remote OIDC login at the provider and the local login.
             options.TokenValidationParameters.AuthenticationType = Constants.AuthenticationTypes.RemoteOIDC;
         }
@@ -225,9 +226,9 @@ services.AddOptions<PropertyReaderOptions>()
         foreach (var prop in serverOptions.Value.ActiveDirectory.Properties)
         {
             readerOptions.PropertyInfos.Add(
-                prop.Key, 
+                prop.Key,
                 new(
-                    prop.Key, 
+                    prop.Key,
                     prop.Value switch
                     {
                         "int" => typeof(int),
@@ -264,14 +265,38 @@ services
 
 var app = builder.Build();
 
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsProduction())
 {
     app.UseExceptionHandler("/Error");
-    app.UseHsts();
 }
 else
 {
     app.UseDeveloperExceptionPage();
+}
+
+app.UseExceptionHandler(
+    appError =>
+    {
+        appError.UseWhen(
+            context =>
+            {
+                var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
+                return
+                    exceptionHandlerFeature?.Error?.InnerException is AuthenticationFailureException authEx &&
+                    authEx.Message.Contains("Correlation", StringComparison.OrdinalIgnoreCase);
+            },
+            correlationError => correlationError.Run(context =>
+            {
+                context.Response.Redirect("/Error/Correlation");
+                return Task.CompletedTask;
+            })
+        );
+    }
+);
+
+if (app.Environment.IsProduction())
+{
+    app.UseHsts();
 }
 
 app.UseHttpsRedirection();
@@ -281,6 +306,7 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
 
 // This is mainly the HomeController, that will render some views.
 app.MapControllers();
