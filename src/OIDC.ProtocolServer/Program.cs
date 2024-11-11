@@ -197,13 +197,13 @@ services.AddAutomaticKeyRollover(
     OpenIddictKeyManagerExtensions.KeyType.X509,
     conf =>
     {
-        conf.KeyStorePath = builder.Configuration["KeyStoreagePath"];
+        conf.KeyStorePath = builder.Configuration["ProtocolServer:JWKS:KeyStoragePath"];
         conf.DisableKeyGeneration = false;
     });
 
 services.Configure<X509Options>(conf =>
 {
-    conf.CertificatePassword = builder.Configuration["CertificatePassword"];
+    conf.CertificatePassword = builder.Configuration["ProtocolServer:JWKS:CertificatePassword"];
 });
 
 services
