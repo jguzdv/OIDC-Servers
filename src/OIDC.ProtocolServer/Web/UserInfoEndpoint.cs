@@ -1,10 +1,12 @@
 ﻿using System.Security.Claims;
 
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
+using JGUZDV.OIDC.ProtocolServer.Configuration;
 using JGUZDV.OIDC.ProtocolServer.Model;
 using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
 
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Options;
 
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
@@ -21,6 +23,7 @@ public partial class Endpoints
             HttpContext httpContext,
             IOpenIddictScopeManager scopeManager,
             IdentityProvider identityProvider,
+            IOptions<ProtocolServerOptions> options,
             CancellationToken ct)
         {
             var authResult = await httpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
@@ -43,6 +46,7 @@ public partial class Endpoints
                 .Where(x => x.Properties.TargetToken.Contains(Destinations.IdentityToken))
                 .SelectMany(x => x.Properties.RequestedClaimTypes)
                 .Except([Claims.Subject], StringComparer.OrdinalIgnoreCase) // We'll add the subject from the current user
+                .Append(options.Value.PersonIdentifierClaimType)
                 .ToHashSet();
 
             var userClaims = new List<Model.Claim>
