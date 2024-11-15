@@ -13,6 +13,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="JGUZDV.AspNetCore.Extensions.OpenTelemetry" Version="1.1.0" />
         <PackageReference Include="JGUZDV.AspNetCore.Authentication.Cookies" Version="1.0.0" />
         <PackageReference Include="JGUZDV.AspNetCore.DataProtection" Version="1.1.1" />
         <PackageReference Include="JGUZDV.AspNetCore.Logging" Version="1.0.8" />
