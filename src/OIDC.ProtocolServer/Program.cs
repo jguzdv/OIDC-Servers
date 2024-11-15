@@ -18,6 +18,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
 
+using OIDC.ProtocolServer.OpenTelemetry;
+
 using OpenIddict.Abstractions;
 
 using Constants = JGUZDV.OIDC.ProtocolServer.Constants;
@@ -32,6 +34,10 @@ builder.UseJGUZDVLogging();
 var services = builder.Services;
 services.AddTransient(sp => TimeProvider.System);
 services.AddSingleton(sp => (IConfigurationRoot)sp.GetRequiredService<IConfiguration>());
+
+// Default OpenTelemetry config, needs the OpenTelemetry config section.
+builder.AddJGUZDVOpenTelemetry();
+services.AddSingleton<MeterContainer>();
 
 // Some functions will need MVC, so we add it.
 // To have some folder structures, we set the view location formats.
