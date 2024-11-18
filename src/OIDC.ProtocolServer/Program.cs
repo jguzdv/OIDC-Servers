@@ -5,6 +5,7 @@ using JGUZDV.ActiveDirectory.Configuration;
 using JGUZDV.OIDC.ProtocolServer.ActiveDirectory;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
+using JGUZDV.OIDC.ProtocolServer.Logging;
 using JGUZDV.OIDC.ProtocolServer.Model;
 using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
 using JGUZDV.OIDC.ProtocolServer.Web;
@@ -28,16 +29,21 @@ using OpenIddictConstants = OpenIddict.Abstractions.OpenIddictConstants;
 IdentityModelEventSource.ShowPII = true;
 JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
+// Basic setup & logging
 var builder = WebApplication.CreateBuilder(args);
 builder.UseJGUZDVLogging();
-
 var services = builder.Services;
-services.AddTransient(sp => TimeProvider.System);
-services.AddSingleton(sp => (IConfigurationRoot)sp.GetRequiredService<IConfiguration>());
+
+// Set up logging for static classes (like Endpoints).
+// Must be placed BEFORE AddJGUZDVOpenTelemetry, otherwise all log traces are doubled (!?!)
+StaticLogging.SetLoggerFactoryByServiceCollection(services);
 
 // Default OpenTelemetry config, needs the OpenTelemetry config section.
 builder.AddJGUZDVOpenTelemetry();
 services.AddSingleton<MeterContainer>();
+
+services.AddTransient(sp => TimeProvider.System);
+services.AddSingleton(sp => (IConfigurationRoot)sp.GetRequiredService<IConfiguration>());
 
 // Some functions will need MVC, so we add it.
 // To have some folder structures, we set the view location formats.

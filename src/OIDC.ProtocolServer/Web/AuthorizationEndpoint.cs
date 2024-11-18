@@ -4,6 +4,7 @@ using System.Security.Claims;
 
 using JGUZDV.OIDC.ProtocolServer.Configuration;
 using JGUZDV.OIDC.ProtocolServer.Extensions;
+using JGUZDV.OIDC.ProtocolServer.Logging;
 using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
 
 using Microsoft.AspNetCore;
@@ -38,6 +39,8 @@ public static partial class Endpoints
             CancellationToken ct
             )
         {
+            var log = StaticLogging.CreateLogger("JGUZDV.OIDC.ProtocolServer.Web.Endpoints.OIDC");
+
             // Retrieve the OpenID Connect request from the HttpContext - this is provided by OpenIddict
             var oidcRequest = httpContext.GetOpenIddictServerRequest() ??
                 throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
@@ -45,7 +48,7 @@ public static partial class Endpoints
             var oidcContext = await contextProvider.CreateContextAsync(oidcRequest, httpContext.RequestAborted);
 
             // Check if the user needs to be challenged, if this method returns an action result, we'll return it.
-            var challengeResult = await GetChallengeIfNeededAsync(httpContext, oidcContext, timeProvider);
+            var challengeResult = await GetChallengeIfNeededAsync(httpContext, oidcContext, timeProvider, log);
             if (challengeResult is not null)
             {
                 return challengeResult;
@@ -96,7 +99,8 @@ public static partial class Endpoints
         private static async Task<IResult?> GetChallengeIfNeededAsync(
             HttpContext httpContext,
             OIDCContext oidcContext,
-            TimeProvider timeProvider)
+            TimeProvider timeProvider,
+            ILogger log)
         {
             var authenticationResult = await httpContext.AuthenticateAsync();
 
@@ -134,6 +138,9 @@ public static partial class Endpoints
                     httpContext.Request.Query.Where(parameter => parameter.Key != Parameters.Prompt).ToList();
 
                 parameters.Add(KeyValuePair.Create(Parameters.Prompt, new StringValues(prompt)));
+
+                log.LogInformation("Challange redirect is needed for application {application} with parameters {parameters}.", 
+                    oidcContext.Application.DisplayName, parameters);
 
                 return Results.Challenge(
                     authenticationSchemes: [requestNeedsMFA ? Constants.AuthenticationSchemes.MFA : Constants.AuthenticationSchemes.OIDC],
