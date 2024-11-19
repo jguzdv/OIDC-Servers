@@ -9,8 +9,11 @@ using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
 
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
+
+using OIDC.ProtocolServer.OpenTelemetry;
 
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
@@ -36,45 +39,67 @@ public static partial class Endpoints
             IOptions<ProtocolServerOptions> options,
             IOpenIddictAuthorizationManager authorizationManager,
             TimeProvider timeProvider,
+            MeterContainer meterContainer,
             CancellationToken ct
             )
         {
             var log = StaticLogging.CreateLogger("JGUZDV.OIDC.ProtocolServer.Web.Endpoints.OIDC");
 
-            // Retrieve the OpenID Connect request from the HttpContext - this is provided by OpenIddict
-            var oidcRequest = httpContext.GetOpenIddictServerRequest() ??
-                throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
-
-            var oidcContext = await contextProvider.CreateContextAsync(oidcRequest, httpContext.RequestAborted);
-
-            // Check if the user needs to be challenged, if this method returns an action result, we'll return it.
-            var challengeResult = await GetChallengeIfNeededAsync(httpContext, oidcContext, timeProvider, log);
-            if (challengeResult is not null)
+            try
             {
-                return challengeResult;
+                // Retrieve the OpenID Connect request from the HttpContext - this is provided by OpenIddict
+                var oidcRequest = httpContext.GetOpenIddictServerRequest() ??
+                    throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
+
+                var oidcContext = await contextProvider.CreateContextAsync(oidcRequest, httpContext.RequestAborted);
+
+                // Log the requested clientId, so we can create some statistics about used clients.
+                log.LogInformation("Run authorize request for client id: {oidc_clientId}", oidcContext.Application.ClientId);
+                meterContainer.CountAuthorizeRequestByClient(oidcContext.Application.ClientId);
+
+                // Check if the user needs to be challenged, if this method returns an action result, we'll return it.
+                var challengeResult = await GetChallengeIfNeededAsync(httpContext, oidcContext, timeProvider, log);
+                if (challengeResult is not null)
+                {
+                    return challengeResult;
+                }
+
+
+                // If we got this far, the user is authenticated and we can retrieve the user id from the claims.
+                // The claims here are "remote" to the application, since they are provided by another authentication provider (see Program.cs).
+                var authenticatedUser = httpContext.User;
+                var subject = GetUniqueClaimValue(authenticatedUser, options.Value.SubjectClaimType);
+
+                log.LogInformation("Found user during authorization process: " +
+                    "Iss: {oidc_iss}, upn: {oidc_upn}, clientId: {oidc_clientId}",
+                    authenticatedUser?.FindFirstValue("iss"), authenticatedUser?.FindFirstValue("upn"),
+                    oidcContext.Application.ClientId);
+
+                // We might have application that are configured to ask for user consent. If this function returns an action result, we'll return it.
+                var consentResult = await GetConsentIfNeededAsync(subject, oidcContext, authorizationManager, ct);
+                if (consentResult is not null)
+                {
+                    return consentResult;
+                }
+
+                // Create the claims-based identity that will be used by OpenIddict to generate tokens.
+                var identity = await identityProvider.CreateIdentityAsync(authenticatedUser, oidcContext, ct);
+                identity.SetIdentityTokenLifetime(TimeSpan.FromSeconds(oidcContext.Application.Properties.MaxTokenLifetimeSeconds));
+
+                // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
+                return Results.SignIn(new ClaimsPrincipal(identity), authenticationScheme: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             }
-
-
-            // If we got this far, the user is authenticated and we can retrieve the user id from the claims.
-            // The claims here are "remote" to the application, since they are provided by another authentication provider (see Program.cs).
-            var authenticatedUser = httpContext.User;
-            var subject = GetUniqueClaimValue(authenticatedUser, options.Value.SubjectClaimType);
-
-
-            // We might have application that are configured to ask for user consent. If this function returns an action result, we'll return it.
-            var consentResult = await GetConsentIfNeededAsync(subject, oidcContext, authorizationManager, ct);
-            if (consentResult is not null)
+            catch (Exception ex)
             {
-                return consentResult;
+                // Log and rethrow. Give some context if possible.
+                log.LogError(ex, "Unexpected exception during the authorize request. " +
+                    "RequestUrl: {oidc_requestUrl} " +
+                    "User?: Name: {oidc_name}, zdv_upn: {oidc_zdvUpn}",
+                    httpContext.Request.GetDisplayUrl(),
+                    httpContext.User?.FindFirstValue("Name"), httpContext?.User?.FindFirstValue("zdv_upn"));
+
+                throw;
             }
-
-
-            // Create the claims-based identity that will be used by OpenIddict to generate tokens.
-            var identity = await identityProvider.CreateIdentityAsync(authenticatedUser, oidcContext, ct);
-            identity.SetIdentityTokenLifetime(TimeSpan.FromSeconds(oidcContext.Application.Properties.MaxTokenLifetimeSeconds));
-
-            // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
-            return Results.SignIn(new ClaimsPrincipal(identity), authenticationScheme: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
 
@@ -139,8 +164,9 @@ public static partial class Endpoints
 
                 parameters.Add(KeyValuePair.Create(Parameters.Prompt, new StringValues(prompt)));
 
-                log.LogInformation("Challange redirect is needed for application {application} with parameters {parameters}.", 
-                    oidcContext.Application.DisplayName, parameters);
+                log.LogInformation("Trigger challange redirect for application {oidc_application} " +
+                    "with parameters {oidc_parameters}, clientId {oidc_clientId}.", 
+                    oidcContext.Application.DisplayName, parameters, oidcContext.Application.ClientId);
 
                 return Results.Challenge(
                     authenticationSchemes: [requestNeedsMFA ? Constants.AuthenticationSchemes.MFA : Constants.AuthenticationSchemes.OIDC],

@@ -7,20 +7,26 @@ namespace OIDC.ProtocolServer.OpenTelemetry;
 
 public class MeterContainer : AbstractJguZdvMeter
 {
-    private readonly Counter<int> _exampleCounter;
+    private readonly Counter<int> _oidcAuthorizeClientCounter;
 
 
     public MeterContainer(IOptions<AspNetCoreOpenTelemetryOptions> options) : base(options)
     {
-        _exampleCounter = Meter.CreateCounter<int>(
-            name: "webapp.example.count",
+        _oidcAuthorizeClientCounter = Meter.CreateCounter<int>(
+            name: "oidc.protocol.server.authorize.client.count",
             description: "Example counter");
     }
 
-
-    public void CountExample()
+    /// <summary>
+    /// customMetrics
+    /// | where timestamp > ago(24h)
+    /// | where name == "oidc.protocol.server.authorize.client.count"
+    /// | extend oidcClientId = customDimensions.oidc_client_id
+    /// </summary>
+    /// <param name="clientId"></param>
+    public void CountAuthorizeRequestByClient(string clientId)
     {
-        _exampleCounter.Add(1,
-            KeyValuePair.Create("example", (object?)"example"));
+        _oidcAuthorizeClientCounter.Add(1,
+            KeyValuePair.Create("oidc_client_id", (object?)clientId));
     }
 }
