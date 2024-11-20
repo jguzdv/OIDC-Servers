@@ -22,9 +22,9 @@ using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace JGUZDV.OIDC.ProtocolServer.Web;
 
-public static partial class Endpoints
+public partial class Endpoints
 {
-    public static partial class OIDC
+    public partial class OIDC
     {
         /// <summary>
         /// This method gets called, when the user is redirected to the authorize endpoint.
@@ -40,11 +40,10 @@ public static partial class Endpoints
             IOpenIddictAuthorizationManager authorizationManager,
             TimeProvider timeProvider,
             MeterContainer meterContainer,
+            ILogger<OIDC> logger,
             CancellationToken ct
             )
         {
-            var log = StaticLogging.CreateLogger("JGUZDV.OIDC.ProtocolServer.Web.Endpoints.OIDC");
-
             try
             {
                 // Retrieve the OpenID Connect request from the HttpContext - this is provided by OpenIddict
@@ -54,11 +53,11 @@ public static partial class Endpoints
                 var oidcContext = await contextProvider.CreateContextAsync(oidcRequest, httpContext.RequestAborted);
 
                 // Log the requested clientId, so we can create some statistics about used clients.
-                log.LogInformation("Run authorize request for client id: {oidc_clientId}", oidcContext.Application.ClientId);
+                logger.LogInformation("Run authorize request for client id: {oidc_clientId}", oidcContext.Application.ClientId);
                 meterContainer.CountAuthorizeRequestByClient(oidcContext.Application.ClientId);
 
                 // Check if the user needs to be challenged, if this method returns an action result, we'll return it.
-                var challengeResult = await GetChallengeIfNeededAsync(httpContext, oidcContext, timeProvider, log);
+                var challengeResult = await GetChallengeIfNeededAsync(httpContext, oidcContext, timeProvider, logger);
                 if (challengeResult is not null)
                 {
                     return challengeResult;
@@ -70,7 +69,7 @@ public static partial class Endpoints
                 var authenticatedUser = httpContext.User;
                 var subject = GetUniqueClaimValue(authenticatedUser, options.Value.SubjectClaimType);
 
-                log.LogInformation("Found user during authorization process: " +
+                logger.LogInformation("Found user during authorization process: " +
                     "Iss: {oidc_iss}, upn: {oidc_upn}, clientId: {oidc_clientId}",
                     authenticatedUser?.FindFirstValue("iss"), authenticatedUser?.FindFirstValue("upn"),
                     oidcContext.Application.ClientId);
@@ -92,7 +91,7 @@ public static partial class Endpoints
             catch (Exception ex)
             {
                 // Log and rethrow. Give some context if possible.
-                log.LogError(ex, "Unexpected exception during the authorize request. " +
+                logger.LogError(ex, "Unexpected exception during the authorize request. " +
                     "RequestUrl: {oidc_requestUrl} " +
                     "User?: Name: {oidc_name}, zdv_upn: {oidc_zdvUpn}",
                     httpContext.Request.GetDisplayUrl(),
@@ -125,7 +124,7 @@ public static partial class Endpoints
             HttpContext httpContext,
             OIDCContext oidcContext,
             TimeProvider timeProvider,
-            ILogger log)
+            ILogger logger)
         {
             var authenticationResult = await httpContext.AuthenticateAsync();
 
@@ -164,7 +163,7 @@ public static partial class Endpoints
 
                 parameters.Add(KeyValuePair.Create(Parameters.Prompt, new StringValues(prompt)));
 
-                log.LogInformation("Trigger challange redirect for application {oidc_application} " +
+                logger.LogInformation("Trigger challange redirect for application {oidc_application} " +
                     "with parameters {oidc_parameters}, clientId {oidc_clientId}.", 
                     oidcContext.Application.DisplayName, parameters, oidcContext.Application.ClientId);
 

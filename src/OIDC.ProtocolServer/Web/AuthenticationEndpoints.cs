@@ -1,6 +1,6 @@
 ﻿namespace JGUZDV.OIDC.ProtocolServer.Web
 {
-    public static partial class Endpoints
+    public partial class Endpoints
     {
         public static class Authentication
         {

@@ -17,7 +17,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Web
 {
     public partial class Endpoints
     {
-        public static partial class OIDC
+        public partial class OIDC
         {
             /// <summary>
             /// This method is the "token endpoint" of the OIDC server. It's commonly called "exchange" in OIDC, probably because it exchanges some grant for tokens.

@@ -17,7 +17,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Web;
 
 public partial class Endpoints
 {
-    public static partial class OIDC
+    public partial class OIDC
     {
         public static async Task<IResult> UserInfo(
             HttpContext httpContext,
