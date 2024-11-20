@@ -34,10 +34,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.UseJGUZDVLogging();
 var services = builder.Services;
 
-// Set up logging for static classes (like Endpoints).
-// Must be placed BEFORE AddJGUZDVOpenTelemetry, otherwise all log traces are doubled (!?!)
-StaticLogging.SetLoggerFactoryByServiceCollection(services);
-
 // Default OpenTelemetry config, needs the OpenTelemetry config section.
 builder.AddJGUZDVOpenTelemetry();
 services.AddSingleton<MeterContainer>();
