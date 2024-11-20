@@ -54,7 +54,7 @@ public partial class Endpoints
 
                 // Log the requested clientId, so we can create some statistics about used clients.
                 // TB: Scopes mitnehmen als attributes ist nützlich.
-                LogMessages.StartAuthorize(logger, oidcContext.Application.ClientId);
+                LogMessages.StartAuthorize(logger, oidcContext.Application.ClientId, oidcRequest.GetScopes());
                 meterContainer.CountAuthorizeRequestByClient(oidcContext.Application.ClientId);
 
                 // Check if the user needs to be challenged, if this method returns an action result, we'll return it.
@@ -70,9 +70,9 @@ public partial class Endpoints
                 var authenticatedUser = httpContext.User;
                 var subject = GetUniqueClaimValue(authenticatedUser, options.Value.SubjectClaimType);
 
-                logger.LogInformation("Found user during authorization process: " +
-                    "Iss: {oidc_iss}, upn: {oidc_upn}, clientId: {oidc_clientId}",
-                    authenticatedUser?.FindFirstValue("iss"), authenticatedUser?.FindFirstValue("upn"),
+                LogMessages.UserFound(logger, 
+                    authenticatedUser?.FindFirstValue("iss"), 
+                    authenticatedUser?.FindFirstValue("upn"),
                     oidcContext.Application.ClientId);
 
                 // We might have application that are configured to ask for user consent. If this function returns an action result, we'll return it.
@@ -83,7 +83,7 @@ public partial class Endpoints
                 }
 
                 // Create the claims-based identity that will be used by OpenIddict to generate tokens.
-                var identity = await identityProvider.CreateIdentityAsync(authenticatedUser, oidcContext, ct);
+                var identity = await identityProvider.CreateIdentityAsync(authenticatedUser!, oidcContext, ct);
                 identity.SetIdentityTokenLifetime(TimeSpan.FromSeconds(oidcContext.Application.Properties.MaxTokenLifetimeSeconds));
 
                 // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
@@ -92,11 +92,10 @@ public partial class Endpoints
             catch (Exception ex)
             {
                 // Log and rethrow. Give some context if possible.
-                logger.LogError(ex, "Unexpected exception during the authorize request. " +
-                    "RequestUrl: {oidc_requestUrl} " +
-                    "User?: Name: {oidc_name}, zdv_upn: {oidc_zdvUpn}",
-                    httpContext.Request.GetDisplayUrl(),
-                    httpContext.User?.FindFirstValue("Name"), httpContext?.User?.FindFirstValue("zdv_upn"));
+                LogMessages.AuthorizeException(logger, ex,
+                    httpContext?.Request?.GetDisplayUrl(),
+                    httpContext?.User?.FindFirstValue("Name"), 
+                    httpContext?.User?.FindFirstValue("zdv_upn"));
 
                 throw;
             }
@@ -164,9 +163,7 @@ public partial class Endpoints
 
                 parameters.Add(KeyValuePair.Create(Parameters.Prompt, new StringValues(prompt)));
 
-                logger.LogInformation("Trigger challange redirect for application {oidc_application} " +
-                    "with parameters {oidc_parameters}, clientId {oidc_clientId}.", 
-                    oidcContext.Application.DisplayName, parameters, oidcContext.Application.ClientId);
+                LogMessages.TriggerChallange(logger, oidcContext.Application.DisplayName, parameters, oidcContext.Application.ClientId);
 
                 return Results.Challenge(
                     authenticationSchemes: [requestNeedsMFA ? Constants.AuthenticationSchemes.MFA : Constants.AuthenticationSchemes.OIDC],

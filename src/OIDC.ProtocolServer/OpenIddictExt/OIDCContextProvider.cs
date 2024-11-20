@@ -23,14 +23,11 @@ public class OIDCContextProvider(IOpenIddictApplicationManager applicationManage
         
         var application = await ApplicationModel.FromClientIdAsync(_applicationManager, clientId, ct);
         
-        // Hier an dieser Stelle würde offline_access rausfliegen, weil dieser Scope nicht in der Datenbank eingetragen wird.
-        // Er würde zwar vom Client beim /authorize übertragen, aber hier dann wieder rausfliegen.
+        // As offline_access is not mentioned in the database for every application, this method would discard it when
+        // the IOpenIddictScopeManager is asked for allowed scopes (which are taken from the db). To prevent loosing
+        // the scope offline_access when requested, it is explicitly added in the statement within the next if clause.
         var scopes = await ScopeModel.FromScopeNamesAsync(_scopeManager, scopeNames, ct);
 
-        // OfflineAccess wird von OpenIdDict intern behandelt. 
-        // Thomas hat das konfigurieren von Scopes über die Datenbank selbst hineingebracht, von Seiten OpenIdDict existiert das gar nicht.
-        // Weil offline_access (siehe oben) hier nicht mehr da sein würde, weil nicht in der DB eingetragen, wird er hier nochmal explizit 
-        // hinzugefügt, wenn er in scopeNames (per request übergebene Scope-Auflistung) drin ist.
         if (scopeNames.Contains(Scopes.OfflineAccess))
         {
             scopes = scopes.Add(new ScopeModel(Scopes.OfflineAccess, Scopes.OfflineAccess, [], new()));

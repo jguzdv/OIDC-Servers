@@ -14,7 +14,7 @@ public class MeterContainer : AbstractJguZdvMeter
     {
         _oidcAuthorizeClientCounter = Meter.CreateCounter<int>(
             name: "oidc.protocol.server.authorize.client.count",
-            description: "Example counter");
+            description: "Counter for oidc authorize requests.");
     }
 
     /// <summary>
