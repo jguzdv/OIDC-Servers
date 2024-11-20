@@ -29,8 +29,9 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
                     }
                     else
                     {
-                        // This will trigger the claim to be written as an array.
-                        var value = JsonSerializer.Serialize(claimTypeClaims.AsEnumerable());
+                        // This will trigger the claim to be written as an array
+                        // TODO: Kevin said it will be simplified in OpenIdDict 6.0
+                        var value = JsonSerializer.Serialize(claimTypeClaims.Select(x => x.Value));
                         identity.AddClaim(new Claim(claimTypeClaims.Key, value, JsonClaimValueTypes.JsonArray));
                     }
                 }
