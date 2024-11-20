@@ -5,7 +5,6 @@ using JGUZDV.ActiveDirectory.Configuration;
 using JGUZDV.OIDC.ProtocolServer.ActiveDirectory;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
-using JGUZDV.OIDC.ProtocolServer.Logging;
 using JGUZDV.OIDC.ProtocolServer.Model;
 using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
 using JGUZDV.OIDC.ProtocolServer.Web;
@@ -14,7 +13,6 @@ using JGUZDV.OpenIddict.KeyManager.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
@@ -75,7 +73,7 @@ else
 
 services.AddAuthentication(options =>
 {
-    // Local login will be done via cookies an OIDC from another host.
+    // Local login will be done via cookies and OIDC from another host.
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
 })

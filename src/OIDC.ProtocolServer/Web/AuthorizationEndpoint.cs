@@ -4,8 +4,8 @@ using System.Security.Claims;
 
 using JGUZDV.OIDC.ProtocolServer.Configuration;
 using JGUZDV.OIDC.ProtocolServer.Extensions;
-using JGUZDV.OIDC.ProtocolServer.Logging;
 using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
+using JGUZDV.OIDC.ProtocolServer.OpenTelemetry;
 
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
@@ -53,7 +53,8 @@ public partial class Endpoints
                 var oidcContext = await contextProvider.CreateContextAsync(oidcRequest, httpContext.RequestAborted);
 
                 // Log the requested clientId, so we can create some statistics about used clients.
-                logger.LogInformation("Run authorize request for client id: {oidc_clientId}", oidcContext.Application.ClientId);
+                // TB: Scopes mitnehmen als attributes ist nützlich.
+                LogMessages.StartAuthorize(logger, oidcContext.Application.ClientId);
                 meterContainer.CountAuthorizeRequestByClient(oidcContext.Application.ClientId);
 
                 // Check if the user needs to be challenged, if this method returns an action result, we'll return it.
@@ -288,5 +289,6 @@ public partial class Endpoints
                     [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = consentError
                 })
             );
+
     }
 }
