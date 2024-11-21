@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 
 using JGUZDV.ActiveDirectory;
@@ -14,12 +15,15 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
 
 using OIDC.ProtocolServer.OpenTelemetry;
 
 using OpenIddict.Abstractions;
+
+using OpenTelemetry.Logs;
 
 using Constants = JGUZDV.OIDC.ProtocolServer.Constants;
 using OpenIddictConstants = OpenIddict.Abstractions.OpenIddictConstants;
@@ -29,12 +33,14 @@ JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 // Basic setup & logging
 var builder = WebApplication.CreateBuilder(args);
-builder.UseJGUZDVLogging();
+//builder.UseJGUZDVLogging();
 var services = builder.Services;
 
 // Default OpenTelemetry config, needs the OpenTelemetry config section.
 builder.AddJGUZDVOpenTelemetry();
 services.AddSingleton<MeterContainer>();
+
+//builder.Logging.AddFilter<OpenTelemetryLoggerProvider>("*", LogLevel.Information);
 
 services.AddTransient(sp => TimeProvider.System);
 services.AddSingleton(sp => (IConfigurationRoot)sp.GetRequiredService<IConfiguration>());
