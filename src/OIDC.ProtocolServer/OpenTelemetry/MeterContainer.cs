@@ -29,6 +29,6 @@ public class MeterContainer : AbstractJguZdvMeter
     {        
         _oidcAuthorizeClientCounter.Add(1,
             KeyValuePair.Create("oidc_client_id", (object?)clientId),
-            KeyValuePair.Create("oidc_scopes", (object?)string.Join(" ", scopes)));
+            KeyValuePair.Create("oidc_scopes", (object?)string.Join(" ", scopes.Select(s => s.Name))));
     }
 }
