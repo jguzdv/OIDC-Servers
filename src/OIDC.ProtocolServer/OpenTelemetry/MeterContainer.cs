@@ -1,5 +1,6 @@
 using System.Diagnostics.Metrics;
 using JGUZDV.AspNetCore.Extensions.OpenTelemetry;
+using JGUZDV.OIDC.ProtocolServer.Model;
 
 using Microsoft.Extensions.Options;
 
@@ -24,9 +25,10 @@ public class MeterContainer : AbstractJguZdvMeter
     /// | extend oidcClientId = customDimensions.oidc_client_id
     /// </summary>
     /// <param name="clientId"></param>
-    public void CountAuthorizeRequestByClient(string clientId)
-    {
+    public void CountAuthorizeRequestByClient(string clientId, IEnumerable<ScopeModel> scopes)
+    {        
         _oidcAuthorizeClientCounter.Add(1,
-            KeyValuePair.Create("oidc_client_id", (object?)clientId));
+            KeyValuePair.Create("oidc_client_id", (object?)clientId),
+            KeyValuePair.Create("oidc_scopes", (object?)string.Join(" ", scopes)));
     }
 }

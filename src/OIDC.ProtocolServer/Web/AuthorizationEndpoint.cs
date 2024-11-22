@@ -55,7 +55,7 @@ public partial class Endpoints
                 // Log the requested clientId, so we can create some statistics about used clients.
                 // TB: Scopes mitnehmen als attributes ist nützlich.
                 LogMessages.StartAuthorize(logger, oidcContext.Application.ClientId, oidcRequest.GetScopes());
-                meterContainer.CountAuthorizeRequestByClient(oidcContext.Application.ClientId);
+                meterContainer.CountAuthorizeRequestByClient(oidcContext.Application.ClientId, oidcContext.Scopes);
 
                 // Check if the user needs to be challenged, if this method returns an action result, we'll return it.
                 var challengeResult = await GetChallengeIfNeededAsync(httpContext, oidcContext, timeProvider, logger);
@@ -92,10 +92,10 @@ public partial class Endpoints
             catch (Exception ex)
             {
                 // Log and rethrow. Give some context if possible.
-                LogMessages.AuthorizeException(logger, ex,
+                LogMessages.AuthException(logger, ex,
                     httpContext?.Request?.GetDisplayUrl(),
                     httpContext?.User?.FindFirstValue("Name"), 
-                    httpContext?.User?.FindFirstValue("zdv_upn"));
+                    httpContext?.User?.FindFirstValue("upn"));
 
                 throw;
             }
