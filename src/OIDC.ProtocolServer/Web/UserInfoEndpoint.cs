@@ -4,9 +4,12 @@ using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
 using JGUZDV.OIDC.ProtocolServer.Model;
 using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
+using JGUZDV.OIDC.ProtocolServer.OpenTelemetry;
 
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
@@ -24,6 +27,7 @@ public partial class Endpoints
             IOpenIddictScopeManager scopeManager,
             IdentityProvider identityProvider,
             IOptions<ProtocolServerOptions> options,
+            ILogger<OIDC> logger,
             CancellationToken ct)
         {
             var authResult = await httpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
@@ -36,6 +40,9 @@ public partial class Endpoints
             var userSubject = user.GetClaim(Claims.Subject);
             if (string.IsNullOrWhiteSpace(userSubject))
             {
+                var authHeader = httpContext.Request.Headers["Authorization"];
+                LogMessages.UnexpectedUserInfoCall(logger, httpContext.Request.GetDisplayUrl(), authHeader.ToString());
+
                 return Unauthorized();
             }
 

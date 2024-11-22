@@ -24,5 +24,8 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenTelemetry
 
         [LoggerMessage(LogLevel.Error, "Unexpected result type at TokenExchangeEndpoint: ClientId: {oidc_clientId}, upn: {oidc_upn}, result type: {oidc_result_type_name}")]
         public static partial void UnexpectedExchangeHttpResultType(ILogger logger, string? oidc_clientId, string? oidc_upn, string? oidc_result_type_name);
+
+        [LoggerMessage(LogLevel.Error, "UserInfo was requested, but the access_token does not contain the subject claim. Request: {oidc_request}, Authorization header: {oidc_auth_header}")]
+        public static partial void UnexpectedUserInfoCall(ILogger logger, string oidc_request, string oidc_auth_header);
     }
 }
