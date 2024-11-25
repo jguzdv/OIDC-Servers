@@ -29,7 +29,7 @@ JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 // Basic setup & logging
 var builder = WebApplication.CreateBuilder(args);
-//builder.UseJGUZDVLogging();
+builder.UseJGUZDVLogging();
 var services = builder.Services;
 
 // Default OpenTelemetry config, needs the OpenTelemetry config section.
