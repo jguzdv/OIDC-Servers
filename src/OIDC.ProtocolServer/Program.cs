@@ -38,11 +38,8 @@ services.AddSingleton<MeterContainer>();
 services.AddSingleton<TimeProvider>(sp => TimeProvider.System);
 services.AddSingleton(sp => (IConfigurationRoot)sp.GetRequiredService<IConfiguration>());
 
-#if DEBUG
-builder.UseJGUZDVLogging(useJsonFormat: false);
-#else
-builder.UseJGUZDVLogging();
-#endif
+// File logging, see Logging:File. Use Plaintext for development, and json format in production.
+builder.UseJGUZDVLogging(useJsonFormat: builder.Environment.IsDevelopment() ? false : true);
 
 // Some functions will need MVC, so we add it.
 // To have some folder structures, we set the view location formats.
