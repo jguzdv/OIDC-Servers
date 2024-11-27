@@ -127,6 +127,8 @@ services.AddOpenIddict()
 
         // Our own application manager, that will handle some left overs stuff from migrating from IdentityServer4.
         options.ReplaceApplicationManager<JGUApplicationManager>();
+
+        options.UseQuartz();
     })
     .AddServer(options =>
     {
