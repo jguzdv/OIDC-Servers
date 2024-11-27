@@ -2,9 +2,13 @@
 
 using JGUZDV.OIDC.ProtocolServer.ActiveDirectory;
 using JGUZDV.OIDC.ProtocolServer.OpenIddictExt;
+using JGUZDV.OIDC.ProtocolServer.OpenTelemetry;
 
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 
 using OpenIddict.Abstractions;
@@ -17,7 +21,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Web
 {
     public partial class Endpoints
     {
-        public static partial class OIDC
+        public partial class OIDC
         {
             /// <summary>
             /// This method is the "token endpoint" of the OIDC server. It's commonly called "exchange" in OIDC, probably because it exchanges some grant for tokens.
@@ -28,28 +32,74 @@ namespace JGUZDV.OIDC.ProtocolServer.Web
                 UserValidationProvider userValidation,
                 OIDCContextProvider oidcContextProvider,
                 IdentityProvider identityProvider,
+                ILogger<OIDC> logger,
                 CancellationToken ct
-            )
+            ) {
+                try
+                {
+                    var oidcRequest = httpContext.GetOpenIddictServerRequest() ??
+                        throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
+
+                    IResult result;
+
+                    if (oidcRequest.IsAuthorizationCodeGrantType())
+                    {
+                        result = await HandleAuthCodeExchange(httpContext, oidcRequest, ct);
+                    }
+                    else if (oidcRequest.IsRefreshTokenGrantType())
+                    {
+                        result = await HandleRefreshTokenExchange(httpContext, oidcRequest, userValidation, oidcContextProvider, identityProvider, ct);
+                    }
+                    else if (oidcRequest.IsClientCredentialsGrantType())
+                    {
+                        result = await HandleClientCredentialFlow(oidcRequest, oidcContextProvider, ct);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("The specified grant type is not supported.");
+                    }
+
+                    LogResult(httpContext, logger, oidcRequest, result);
+                    return result;
+
+                }
+                catch (Exception ex)
+                {
+                    // Log request and rethrow. 
+                    LogMessages.TokenExchangeException(logger, ex,
+                        httpContext?.Request?.GetDisplayUrl());
+
+                    throw;
+                }
+            }
+
+            private static void LogResult(HttpContext httpContext, ILogger<OIDC> logger, OpenIddictRequest oidcRequest, IResult? result)
             {
-                var oidcRequest = httpContext.GetOpenIddictServerRequest() ??
-                    throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
-
-                if (oidcRequest.IsAuthorizationCodeGrantType())
+                switch (result)
                 {
-                    return await HandleAuthCodeExchange(httpContext, oidcRequest, ct);
-                }
-                        
-                else if(oidcRequest.IsRefreshTokenGrantType())
-                {
-                    return await HandleRefreshTokenExchange(httpContext, oidcRequest, userValidation, oidcContextProvider, identityProvider, ct);
-                }
+                    case SignInHttpResult signInHttpResult:
+                        LogMessages.TokenExchangeFinished(logger,
+                            oidcRequest?.ClientId,
+                            signInHttpResult.Principal.FindFirstValue("zdv_upn"),
+                            true,
+                            signInHttpResult.Properties?.Items);
+                        break;
 
-                else if (oidcRequest.IsClientCredentialsGrantType())
-                {
-                    return await HandleClientCredentialFlow(oidcRequest, oidcContextProvider, ct);
-                }
+                    case ForbidHttpResult forbidHttpResult:
+                        LogMessages.TokenExchangeFinished(logger,
+                            oidcRequest?.ClientId,
+                            httpContext?.User?.FindFirstValue("upn"),
+                            false,
+                            forbidHttpResult.Properties?.Items);
+                        break;
 
-                throw new InvalidOperationException("The specified grant type is not supported.");
+                    default:
+                        LogMessages.UnexpectedExchangeHttpResultType(logger,
+                            oidcRequest?.ClientId,
+                            httpContext?.User?.FindFirstValue("upn"),
+                            result?.GetType().FullName);
+                        break;
+                }
             }
 
 

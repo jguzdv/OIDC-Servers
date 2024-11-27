@@ -22,6 +22,10 @@ public class OIDCContextProvider(IOpenIddictApplicationManager applicationManage
         var scopeNames = requestedScopes ?? request.GetScopes();
         
         var application = await ApplicationModel.FromClientIdAsync(_applicationManager, clientId, ct);
+        
+        // As offline_access is not mentioned in the database for every application, this method would discard it when
+        // the IOpenIddictScopeManager is asked for allowed scopes (which are taken from the db). To prevent loosing
+        // the scope offline_access when requested, it is explicitly added in the statement within the next if clause.
         var scopes = await ScopeModel.FromScopeNamesAsync(_scopeManager, scopeNames, ct);
 
         if (scopeNames.Contains(Scopes.OfflineAccess))

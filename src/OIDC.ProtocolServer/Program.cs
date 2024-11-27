@@ -13,10 +13,11 @@ using JGUZDV.OpenIddict.KeyManager.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
+
+using OIDC.ProtocolServer.OpenTelemetry;
 
 using OpenIddict.Abstractions;
 
@@ -26,12 +27,19 @@ using OpenIddictConstants = OpenIddict.Abstractions.OpenIddictConstants;
 IdentityModelEventSource.ShowPII = true;
 JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
+// Basic setup & logging
 var builder = WebApplication.CreateBuilder(args);
-builder.UseJGUZDVLogging();
-
 var services = builder.Services;
-services.AddTransient(sp => TimeProvider.System);
+
+// Default OpenTelemetry config, needs the OpenTelemetry config section.
+builder.AddJGUZDVOpenTelemetry();
+services.AddSingleton<MeterContainer>();
+
+services.AddSingleton<TimeProvider>(sp => TimeProvider.System);
 services.AddSingleton(sp => (IConfigurationRoot)sp.GetRequiredService<IConfiguration>());
+
+// File logging, see Logging:File. Use Plaintext for development, and json format in production.
+builder.UseJGUZDVLogging(useJsonFormat: builder.Environment.IsDevelopment() ? false : true);
 
 // Some functions will need MVC, so we add it.
 // To have some folder structures, we set the view location formats.
@@ -67,7 +75,7 @@ else
 
 services.AddAuthentication(options =>
 {
-    // Local login will be done via cookies an OIDC from another host.
+    // Local login will be done via cookies and OIDC from another host.
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
 })
