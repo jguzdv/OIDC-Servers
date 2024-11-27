@@ -29,15 +29,20 @@ JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 // Basic setup & logging
 var builder = WebApplication.CreateBuilder(args);
-builder.UseJGUZDVLogging();
 var services = builder.Services;
 
 // Default OpenTelemetry config, needs the OpenTelemetry config section.
 builder.AddJGUZDVOpenTelemetry();
 services.AddSingleton<MeterContainer>();
 
-services.AddTransient(sp => TimeProvider.System);
+services.AddSingleton<TimeProvider>(sp => TimeProvider.System);
 services.AddSingleton(sp => (IConfigurationRoot)sp.GetRequiredService<IConfiguration>());
+
+#if DEBUG
+builder.UseJGUZDVLogging(useJsonFormat: false);
+#else
+builder.UseJGUZDVLogging();
+#endif
 
 // Some functions will need MVC, so we add it.
 // To have some folder structures, we set the view location formats.
