@@ -35,6 +35,8 @@
         <PackageReference Include="OpenIdDict.EntityFrameworkCore" Version="5.8.0" />
 
         <PackageReference Include="Dapper" Version="2.1.35" />
+
+        <PackageReference Include="OpenIddict.Quartz" Version="5.8.0" />
     </ItemGroup>
 
     <ItemGroup>
