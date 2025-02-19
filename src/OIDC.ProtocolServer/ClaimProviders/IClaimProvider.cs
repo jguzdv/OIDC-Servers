@@ -1,29 +1,21 @@
-﻿using Microsoft.Extensions.DependencyInjection.Extensions;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 
 namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders
 {
     public interface IClaimProvider
     {
-        // TODO: this is not ideal, since it should be defined elsewhere, but it's a quick fix for now
-        int ExecutionOrder { get; }
+        /// <summary>
+        /// The claim types that this provider needs before it can run.
+        /// This list can be used to build a execution order.
+        /// </summary>
+        string[] RequiredClaims { get; }
 
         Task<List<Model.Claim>> GetClaimsAsync(
             ClaimsPrincipal currentUser, 
-            IEnumerable<Model.Claim> knownClaims, // TOD: this should probably be a ISet<>
+            IEnumerable<Model.Claim> knownClaims, // TODO: this should probably be a ISet<>
             IEnumerable<string> claimTypes, 
             CancellationToken ct);
 
         bool CanProvideAnyOf(IEnumerable<string> claimTypes);
-    }
-
-    public static class ClaimProviderExtensions
-    {
-        public static IServiceCollection AddClaimProvider<T>(this IServiceCollection services)
-        {
-            services.TryAddEnumerable(new ServiceDescriptor(typeof(IClaimProvider), typeof(T), ServiceLifetime.Scoped));
-
-            return services;
-        }
     }
 }
