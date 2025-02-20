@@ -13,7 +13,10 @@ internal class PrincipalClaimProvider : IClaimProvider
 {
     private readonly ILookup<string, PrincipalClaimProviderOptions.PrincipalClaimType> _claimTypeMaps;
 
-    public int ExecutionOrder => 1;
+    public string[] RequiredClaimTypes => Array.Empty<string>();
+    public string[] ProvidedClaimTypes => _claimTypeMaps
+            .Select(x => x.Key)
+            .ToArray();
 
     public PrincipalClaimProvider(IOptions<ProtocolServerOptions> options)
     {
