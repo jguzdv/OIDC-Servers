@@ -12,7 +12,8 @@ namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders
 {
     internal class JGUDirectoryClaimProvider : IClaimProvider
     {
-        public int ExecutionOrder => 100;
+        public string[] RequiredClaimTypes => [_options.Value.PersonIdentifierClaimType];
+        public string[] ProvidedClaimTypes => [.. AvailableClaimTypes];
 
         private static readonly string[] AvailableClaimTypes = new[]
         {

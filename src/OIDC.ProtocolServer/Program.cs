@@ -35,11 +35,11 @@ var services = builder.Services;
 builder.AddJGUZDVOpenTelemetry();
 services.AddSingleton<MeterContainer>();
 
-services.AddSingleton<TimeProvider>(sp => TimeProvider.System);
+services.AddSingleton(sp => TimeProvider.System);
 services.AddSingleton(sp => (IConfigurationRoot)sp.GetRequiredService<IConfiguration>());
 
 // File logging, see Logging:File. Use Plaintext for development, and json format in production.
-builder.UseJGUZDVLogging(useJsonFormat: builder.Environment.IsDevelopment() ? false : true);
+builder.UseJGUZDVLogging(useJsonFormat: builder.Environment.IsProduction());
 
 // Some functions will need MVC, so we add it.
 // To have some folder structures, we set the view location formats.
@@ -136,6 +136,7 @@ services.AddOpenIddict()
         // Our own application manager, that will handle some left overs stuff from migrating from IdentityServer4.
         options.ReplaceApplicationManager<JGUApplicationManager>();
 
+        // This enables removal of old tokens
         options.UseQuartz();
     })
     .AddServer(options =>

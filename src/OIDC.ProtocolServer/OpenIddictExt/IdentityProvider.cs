@@ -13,16 +13,25 @@ using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
 {
-    public class IdentityProvider(IEnumerable<IClaimProvider> claimProviders, IOptions<ProtocolServerOptions> options)
-    {
-        private readonly IEnumerable<IClaimProvider> _claimProviders = claimProviders;
-        private readonly IOptions<ProtocolServerOptions> _options = options;
+    public class IdentityProvider {
+        private readonly HashSet<string> _essentialClaims;
 
-        private readonly HashSet<string> _essentialClaims =
-        [
-            options.Value.SubjectClaimType,
-            options.Value.PersonIdentifierClaimType
-        ];
+        private readonly List<IClaimProvider> _claimProviders;
+        private readonly IOptions<ProtocolServerOptions> _options;
+
+        public IdentityProvider(IEnumerable<IClaimProvider> claimProviders, IOptions<ProtocolServerOptions> options)
+        {
+            _options = options;
+
+            _claimProviders = claimProviders.ToList();
+            OrderClaimProviders(_claimProviders);
+
+            _essentialClaims =
+            [
+                options.Value.SubjectClaimType,
+                options.Value.PersonIdentifierClaimType
+            ];
+        }
 
         public async Task<ClaimsIdentity> CreateIdentityAsync(
             ClaimsPrincipal subjectUser,
@@ -78,7 +87,8 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         public async Task<List<Model.Claim>> LoadUserClaims(ClaimsPrincipal user, HashSet<string> requestedClaimTypes, CancellationToken ct)
         {
             var userClaims = new List<Model.Claim>();
-            foreach (var cp in _claimProviders.OrderBy(x => x.ExecutionOrder))
+            
+            foreach (var cp in _claimProviders)
             {
                 if (!cp.CanProvideAnyOf(requestedClaimTypes))
                 {
@@ -92,11 +102,41 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
             return userClaims;
         }
 
+        private void OrderClaimProviders(List<IClaimProvider> claimProviders)
+        {
+            var providedClaims = new HashSet<string>();
+
+            for(int i = 0; i < claimProviders.Count; i++)
+            {
+                bool foundNextProvider = false;
+
+                for(int j = i; j < claimProviders.Count; j++)
+                {
+                    var provider = claimProviders[j];
+
+                    if(provider.RequiredClaimTypes.All(providedClaims.Contains))
+                    {
+                        foundNextProvider = true;
+                        providedClaims.UnionWith(provider.ProvidedClaimTypes);
+                        (claimProviders[i], claimProviders[j]) = (claimProviders[j], claimProviders[i]);
+
+                        break;
+                    }
+                }
+
+                if (!foundNextProvider)
+                {
+                    throw new InvalidOperationException("Circular or non fullfillable dependency detected among claim providers.");
+                }
+            }
+        }
+
 
 
         private static readonly IEnumerable<string> IdTokenOnly = [Destinations.IdentityToken];
         private static readonly IEnumerable<string> AccessTokenOnly = [Destinations.AccessToken];
         private static readonly IEnumerable<string> BothTokens = [Destinations.IdentityToken, Destinations.AccessToken];
+
 
         private static IEnumerable<string> GetDestinations(Claim claim, HashSet<string> idTokenClaims, HashSet<string> accessTokenClaims)
         {
