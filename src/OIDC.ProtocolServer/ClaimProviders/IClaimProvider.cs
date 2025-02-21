@@ -21,12 +21,10 @@ namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders
         bool CanProvideAnyOf(IEnumerable<string> claimTypes);
 
         /// <summary>
-        /// Get the claims for the current user.
+        /// Add the claims of this provider to the claim provider context.
         /// </summary>
-        Task<List<Model.Claim>> GetClaimsAsync(
-            ClaimsPrincipal currentUser, 
-            IEnumerable<Model.Claim> knownClaims, // TODO: this should probably be a ISet<>
-            IEnumerable<string> claimTypes, 
+        Task AddProviderClaimsToContext(
+            ClaimProviderContext context,
             CancellationToken ct);
 
     }
