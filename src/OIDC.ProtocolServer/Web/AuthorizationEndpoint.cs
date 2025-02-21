@@ -142,7 +142,7 @@ public partial class Endpoints
             {
                 // If the client application requested promptless authentication,
                 // return an error indicating that the user is not logged in.
-                if (oidcContext.Request.HasPrompt(Prompts.None))
+                if (oidcContext.Request.HasPromptValue(PromptValues.None))
                 {
                     return Results.Forbid(
                         authenticationSchemes: [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme],
@@ -155,7 +155,7 @@ public partial class Endpoints
 
                 // To avoid endless login -> authorization redirects, the prompt=login flag
                 // is removed from the authorization request payload before redirecting the user.
-                var prompt = string.Join(" ", oidcContext.Request.GetPrompts().Remove(Prompts.Login));
+                var prompt = string.Join(" ", oidcContext.Request.GetPromptValues().Remove(PromptValues.Login));
 
                 var parameters = httpContext.Request.HasFormContentType ?
                     httpContext.Request.Form.Where(parameter => parameter.Key != Parameters.Prompt).ToList() :
@@ -183,7 +183,7 @@ public partial class Endpoints
                 //  If prompt=login was specified by the client application and the login is older than 5 minutes (else, we'll ignore that prompt)
 
                 var issuedAt = authenticationResult?.Properties?.IssuedUtc ?? DateTimeOffset.MinValue;
-                var maxAge = oidcContext.Request.HasPrompt(Prompts.Login)
+                var maxAge = oidcContext.Request.HasPromptValue(PromptValues.Login)
                     ? TimeSpan.FromMinutes(5)
                     : oidcContext.Request.MaxAge != null
                         ? TimeSpan.FromSeconds(oidcContext.Request.MaxAge.Value)
@@ -258,13 +258,13 @@ public partial class Endpoints
                 // return an authorization response without displaying the consent form.
                 case ConsentTypes.Implicit:
                 case ConsentTypes.External when authorizations.Any():
-                case ConsentTypes.Explicit when authorizations.Any() && !oidcContext.Request.HasPrompt(Prompts.Consent):
+                case ConsentTypes.Explicit when authorizations.Any() && !oidcContext.Request.HasPromptValue(PromptValues.Consent):
                     return null;
 
                 // At this point, no authorization was found in the database and an error must be returned
                 // if the client application specified prompt=none in the authorization request.
-                case ConsentTypes.Explicit when oidcContext.Request.HasPrompt(Prompts.None):
-                case ConsentTypes.Systematic when oidcContext.Request.HasPrompt(Prompts.None):
+                case ConsentTypes.Explicit when oidcContext.Request.HasPromptValue(PromptValues.None):
+                case ConsentTypes.Systematic when oidcContext.Request.HasPromptValue(PromptValues.None):
                     return ConsentError("Interactive user consent is required.");
             }
 
