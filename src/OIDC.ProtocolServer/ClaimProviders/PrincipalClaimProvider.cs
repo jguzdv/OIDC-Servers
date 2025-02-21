@@ -1,6 +1,5 @@
-﻿using System.Security.Claims;
-
-using JGUZDV.OIDC.ProtocolServer.Configuration;
+﻿using JGUZDV.OIDC.ProtocolServer.Configuration;
+using JGUZDV.OIDC.ProtocolServer.Model;
 
 using Microsoft.Extensions.Options;
 
@@ -11,34 +10,37 @@ namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 /// </summary>
 internal class PrincipalClaimProvider : IClaimProvider
 {
-    private readonly ILookup<string, PrincipalClaimProviderOptions.PrincipalClaimType> _claimTypeMaps;
+    //TODO: Make this TWO claims provider - one for local users and one for remote users?
+    private readonly ILookup<ClaimType, PrincipalClaimProviderOptions.PrincipalClaimType> _claimTypeMaps;
 
-    public string[] RequiredClaimTypes => Array.Empty<string>();
-    public string[] ProvidedClaimTypes => _claimTypeMaps
-            .Select(x => x.Key)
+    public ClaimType[] RequiredClaimTypes => Array.Empty<ClaimType>();
+    public ClaimType[] ProvidedClaimTypes => _claimTypeMaps
+            .SelectMany(x => x.Select(pct => new ClaimType(pct.AsClaimType ?? pct.ClaimType)))
             .ToArray();
 
     public PrincipalClaimProvider(IOptions<ProtocolServerOptions> options)
     {
         _claimTypeMaps = options.Value.PrincipalClaimProvider
             .ClaimTypeMaps
-            .ToLookup(x => x.ClaimType, x => x, StringComparer.OrdinalIgnoreCase);
+            .ToLookup(
+                x => new ClaimType(x.ClaimType), 
+                x => x);
     }
 
-    public bool CanProvideAnyOf(IEnumerable<string> claimTypes) => 
+    public bool CanProvideAnyOf(IEnumerable<ClaimType> claimTypes) => 
         _claimTypeMaps
             .Select(x => x.Key)
-            .Intersect(claimTypes, StringComparer.OrdinalIgnoreCase)
+            .Intersect(claimTypes)
             .Any();
 
-    public Task<List<Model.Claim>> GetClaimsAsync(ClaimsPrincipal currentUser, IEnumerable<Model.Claim> knownClaims, IEnumerable<string> claimTypes, CancellationToken ct)
-    {
-        var result = new List<Model.Claim>();
 
-        foreach(var claim in currentUser.Claims)
+
+    public Task AddProviderClaimsToContext(ClaimProviderContext context, CancellationToken ct)
+    {
+        foreach (var claim in context.User.Claims)
         {
             var claimTypeMaps = _claimTypeMaps[claim.Type];
-            if(!claimTypeMaps.Any())
+            if (!claimTypeMaps.Any())
             {
                 continue;
             }
@@ -52,10 +54,10 @@ internal class PrincipalClaimProvider : IClaimProvider
                     _ => claim.Value,
                 };
 
-                result.Add(new Model.Claim(actualType, claimValue));
+                context.AddClaim(new(actualType, claimValue));
             }
         }
 
-        return Task.FromResult(result.Where(x => claimTypes.Contains(x.Type, StringComparer.OrdinalIgnoreCase)).ToList());
+        return Task.CompletedTask;
     }
 }

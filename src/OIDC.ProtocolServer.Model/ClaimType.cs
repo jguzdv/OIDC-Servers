@@ -12,17 +12,6 @@ public readonly record struct ClaimType(string Type)
             field = value;
         }
     } = Type;
-}
 
-public readonly record struct ClaimValue(string Value)
-{
-    public readonly string Value
-    {
-        get;
-        init
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(value));
-            field = value;
-        }
-    } = Value;
+    public static implicit operator ClaimType(string claimType) => new(claimType);
 }

@@ -1,5 +1,7 @@
 ﻿using System.Security.Claims;
 
+using JGUZDV.OIDC.ProtocolServer.Model;
+
 namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders
 {
     public class ClaimProviderContext
@@ -7,7 +9,7 @@ namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders
         private readonly HashSet<Model.Claim> _claims = [];
 
         public required ClaimsPrincipal User { get; init; }
-        public required HashSet<string> RequestedClaimTypes { get; init; }
+        public required HashSet<ClaimType> RequestedClaimTypes { get; init; }
 
         public IEnumerable<Model.Claim> Claims => _claims;
 

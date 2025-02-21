@@ -2,6 +2,7 @@
 
 using JGUZDV.OIDC.ProtocolServer.ActiveDirectory;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
+using JGUZDV.OIDC.ProtocolServer.Model;
 
 using Microsoft.Extensions.Options;
 
@@ -25,21 +26,28 @@ internal class ActiveDirectoryClaimProviderFacade : IClaimProvider
         _provider = provider;
     }
 
-    public string[] RequiredClaimTypes => [
-        _options.Value.SubjectClaimType,
-        Claims.Subject
+    public ClaimType[] RequiredClaimTypes => [
+        new(_options.Value.SubjectClaimType)
         ];
 
-    public string[] ProvidedClaimTypes => 
-        _provider.GetProvidedClaimTypes().ToArray();
+    public ClaimType[] ProvidedClaimTypes => 
+        _provider.GetProvidedClaimTypes().Select(x => new ClaimType(x)).ToArray();
 
-    public bool CanProvideAnyOf(IEnumerable<string> claimTypes) =>
-        _provider.GetProvidedClaimTypes(claimTypes.ToArray()).Any();
+    
+    public bool CanProvideAnyOf(IEnumerable<ClaimType> claimTypes) =>
+        _provider.GetProvidedClaimTypes(claimTypes.Select(x => x.Type).ToArray()).Any();
 
-    public Task<List<Model.Claim>> GetClaimsAsync(ClaimsPrincipal subject, IEnumerable<Model.Claim> knownClaims, IEnumerable<string> claimTypes, CancellationToken ct)
+
+    public Task AddProviderClaimsToContext(ClaimProviderContext context, CancellationToken ct)
     {
-        var userEntry = _directoryEntryProvider.GetUserEntryFromPrincipal(subject);
-        var result = _provider.GetClaims(userEntry, claimTypes.ToArray());
-        return Task.FromResult(result.Select(x => new Model.Claim(x.Type, x.Value)).ToList());
+        var userEntry = _directoryEntryProvider.GetUserEntryFromPrincipal(context.User);
+        var claims = _provider.GetClaims(userEntry, context.RequestedClaimTypes.Select(x => x.Type).ToArray());
+        foreach (var claim in claims)
+        {
+            context.AddClaim(new Model.Claim(claim.Type, claim.Value));
+        }
+
+        return Task.CompletedTask;
     }
+
 }
