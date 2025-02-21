@@ -207,11 +207,11 @@ namespace JGUZDV.OIDC.ProtocolServer.Web
                 // Collect all static claims from application and scopes.
                 var clientClaims = oidcContext.Application.Properties.StaticClaims
                     .Select(x => new Model.Claim(x.Type, x.Value))
-                    .ToList();
+                    .ToHashSet();
 
                 var scopeClaims = oidcContext.Scopes.SelectMany(x => x.Properties.StaticClaims)
                     .Select(x => new Model.Claim(x.Type, x.Value))
-                    .ToList();
+                    .ToHashSet();
 
 
                 var identity = new ClaimsIdentity(
@@ -229,7 +229,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Web
                 identity.SetResources(oidcContext.Scopes.SelectMany(x => x.Resources));
 
                 // Add all static claims and set their destination to the access token
-                identity.SetClaims(clientClaims.Concat(scopeClaims).DistinctBy(x => $"{x.Type.ToLowerInvariant()}:{x.Value.ToLowerInvariant()}"));
+                identity.SetClaims(clientClaims.Concat(scopeClaims).Distinct());
                 identity.SetDestinations(x => [Destinations.AccessToken]);
 
                 // Returning a SignInResult will ask OpenIddict to issue the appropriate access token.

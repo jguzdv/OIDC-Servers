@@ -27,6 +27,8 @@ public class PrincipalClaimProviderOptions : IValidatableObject
 
         public string? AsClaimType { get; set; }
 
+        public string? FromIssuer { get; set; }
+
         public ClaimTransformationMethod Transformation { get; set; } = default;
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

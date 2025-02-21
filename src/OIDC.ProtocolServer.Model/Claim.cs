@@ -1,15 +1,13 @@
 ﻿
-namespace JGUZDV.OIDC.ProtocolServer.Model
-{
-    public class Claim // TODO: this should probably be a record
-    {
-        public Claim(string type, string value)
-        {
-            Type = type ?? throw new ArgumentNullException(nameof(type));
-            Value = value ?? throw new ArgumentNullException(nameof(value));
-        }
+using System.Text.Json.Serialization;
 
-        public string Type { get; }
-        public string Value { get; }
-    }
+namespace JGUZDV.OIDC.ProtocolServer.Model;
+
+public record Claim(ClaimType Type, ClaimValue Value)
+{
+    [JsonConstructor]
+    public Claim(string type, string value)
+        : this(new ClaimType(type), new ClaimValue(value))
+    { }
 }
+

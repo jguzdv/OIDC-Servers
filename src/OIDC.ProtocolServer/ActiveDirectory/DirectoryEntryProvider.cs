@@ -25,6 +25,8 @@ namespace JGUZDV.OIDC.ProtocolServer.ActiveDirectory
 
         public DirectoryEntry GetUserEntryFromPrincipal(ClaimsPrincipal principal, params string[] propertiesToLoad)
         {
+            // TODO: this is a bad idea, to do this here - we'll move this to the PrincipalClaimProvider and make the ActiveDirectoryClaimProviderFacade use that as a dependency.
+
             // TODO: Make this a configurable list e.g. authenticationType -> ClaimType
             var userIdentifier = string.Equals(principal.Identity?.AuthenticationType, Constants.AuthenticationTypes.RemoteOIDC)
                     // ADFS will provide 'zdv_sub' as a claim in the principal

@@ -6,6 +6,13 @@ namespace JGUZDV.OIDC.ProtocolServer.Model
 {
     public abstract class CustomProperties
     {
+        protected static JsonSerializerOptions DefaultOptions => new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true,
+            Converters = { new ClaimTypeJsonConverter(), new ClaimValueJsonConverter() }
+        };
+
         public const string PropertyName = "jgu-props";
 
         public abstract JsonElement Serialize();
@@ -13,7 +20,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Model
         protected static T Deserialize<T>(JsonElement element)
             where T : CustomProperties, new()
         {
-            return JsonSerializer.Deserialize<T>(element) ?? new();
+            return JsonSerializer.Deserialize<T>(element, DefaultOptions) ?? new();
         }
 
         public List<Claim> StaticClaims { get; set; } = new();
@@ -29,7 +36,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Model
 
         public override JsonElement Serialize()
         {
-            return JsonSerializer.SerializeToElement(this);
+            return JsonSerializer.SerializeToElement(this, DefaultOptions);
         }
 
         public static ApplicationProperties DeserializeFromProperties(IDictionary<string, JsonElement> properties)
@@ -44,7 +51,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Model
     {
         public override JsonElement Serialize()
         {
-            return JsonSerializer.SerializeToElement(this);
+            return JsonSerializer.SerializeToElement(this, DefaultOptions);
         }
 
         public static ScopeProperties DeserializeFromProperties(IDictionary<string, JsonElement> properties)

@@ -1,6 +1,7 @@
 ﻿using Dapper;
 
 using JGUZDV.OIDC.ProtocolServer.Configuration;
+using JGUZDV.OIDC.ProtocolServer.Model;
 
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
@@ -8,18 +9,20 @@ using Microsoft.Extensions.Options;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 
+using static JGUZDV.OIDC.ProtocolServer.Constants;
+
 namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders
 {
     internal class JGUDirectoryClaimProvider : IClaimProvider
     {
-        public string[] RequiredClaimTypes => [_options.Value.PersonIdentifierClaimType];
-        public string[] ProvidedClaimTypes => [.. AvailableClaimTypes];
+        public ClaimType[] RequiredClaimTypes => [new(_options.Value.PersonIdentifierClaimType)];
+        public ClaimType[] ProvidedClaimTypes => [.. AvailableClaimTypes];
 
-        private static readonly string[] AvailableClaimTypes = new[]
-        {
-            "idm_group",
-            "idm_sex"
-        };
+        private static readonly ClaimType[] AvailableClaimTypes = 
+        [
+            new("idm_group"),
+            new("idm_sex")
+        ];
 
         private readonly IOptions<ProtocolServerOptions> _options;
         private readonly ILogger<JGUDirectoryClaimProvider> _logger;
@@ -34,55 +37,53 @@ namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders
             _sqlConnection = new SqlConnection(options.Value.JGUDirectory.DatabaseConnectionString);
         }
 
-        public async Task<List<Model.Claim>> GetClaimsAsync(
-            ClaimsPrincipal currentUser,
-            IEnumerable<Model.Claim> knownClaims,
-            IEnumerable<string> claimTypes,
-            CancellationToken ct)
+
+        public bool CanProvideAnyOf(IEnumerable<ClaimType> claimTypes)
         {
-            var processableClaimTypes = claimTypes
+            return claimTypes.Intersect(AvailableClaimTypes).Any();
+        }
+
+
+        public async Task AddProviderClaimsToContext(ClaimProviderContext context, CancellationToken ct)
+        {
+            var processableClaimTypes = context.RequestedClaimTypes
                 .Intersect(AvailableClaimTypes)
                 .ToList();
 
-            var result = new List<Model.Claim>();
-
             if (!processableClaimTypes.Any())
-                return result;
+            {
+                return;
+            }
 
-            var personUuidClaim = knownClaims.FirstOrDefault(x => x.Type == _options.Value.PersonIdentifierClaimType);
+            var personUuidClaim = context.Claims.FirstOrDefault(x => x.Type == _options.Value.PersonIdentifierClaimType);
             if (personUuidClaim == null)
             {
-                _logger.LogWarning("Could not find {type}. Existing claims were: {claims}", _options.Value.PersonIdentifierClaimType, string.Join(", ", knownClaims.Select(x => $"{x.Type}: {x.Value}")));
-                return result;
+                _logger.LogWarning("Could not find {type}. Existing claims were: {claims}", _options.Value.PersonIdentifierClaimType, string.Join(", ", context.Claims.Select(x => $"{x.Type}: {x.Value}")));
+                return;
             }
 
             try
             {
                 if (processableClaimTypes.Contains("idm_group"))
                 {
-                    result.AddRange(await GetGroupClaimsAsync(personUuidClaim.Value));
+                    var claims = await GetGroupClaimsAsync(personUuidClaim.Value);
+                    context.AddClaims(claims);
                 }
 
                 if (processableClaimTypes.Contains("idm_sex"))
                 {
-                    result.Add(await GetPersonSexAsync(personUuidClaim.Value));
+                    var claim = await GetPersonSexAsync(personUuidClaim.Value);
+                    context.AddClaim(claim);
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Could not enrich with claims from JGUDirectory.");
             }
-
-            return result;
-        }
-
-        public bool CanProvideAnyOf(IEnumerable<string> claimTypes)
-        {
-            return claimTypes.Intersect(AvailableClaimTypes).Any();
         }
 
 
-        private async Task<Model.Claim> GetPersonSexAsync(string personUuid)
+        private async Task<Model.Claim> GetPersonSexAsync(ClaimValue personUuid)
         {
             const string queryText = "SELECT Sex " +
                 "FROM [OpenId].[Persons] " +
@@ -90,13 +91,13 @@ namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders
 
             var personDataQueryResult = await _sqlConnection.QueryAsync<PersonQueryResult>(
                 queryText,
-                new { personUuid });
+                new { personUuid = personUuid.Value });
 
             return personDataQueryResult.Select(x => new Model.Claim("idm_sex", $"{x.Sex ?? 0}"))
                 .FirstOrDefault() ?? new Model.Claim("idm_sex", "0");
         }
 
-        private async Task<List<Model.Claim>> GetGroupClaimsAsync(string personUuid)
+        private async Task<List<Model.Claim>> GetGroupClaimsAsync(ClaimValue personUuid)
         {
             const string queryText = "SELECT StructuralUnitUuid, RoleInternalName " +
                 "FROM [OpenId].[GroupMembers] " +
@@ -105,7 +106,10 @@ namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders
 
             var groupResult = await _sqlConnection.QueryAsync<GroupQueryResult>(
                 queryText,
-                new { personUuid, refDate = DateTimeOffset.Now });
+                new { 
+                    personUuid = personUuid.Value, 
+                    refDate = DateTimeOffset.Now 
+                });
 
             return groupResult
                 .Select(x => new Model.Claim("idm_group", $"{x.StructuralUnitUuid}:{x.RoleInternalName}"))

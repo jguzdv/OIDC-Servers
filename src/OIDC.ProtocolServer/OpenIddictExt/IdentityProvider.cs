@@ -3,6 +3,7 @@ using System.Security.Claims;
 
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
+using JGUZDV.OIDC.ProtocolServer.Model;
 
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -14,7 +15,7 @@ using static OpenIddict.Abstractions.OpenIddictConstants;
 namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
 {
     public class IdentityProvider {
-        private readonly HashSet<string> _essentialClaims;
+        private readonly HashSet<ClaimType> _essentialClaims;
 
         private readonly List<IClaimProvider> _claimProviders;
         private readonly IOptions<ProtocolServerOptions> _options;
@@ -28,8 +29,9 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
 
             _essentialClaims =
             [
+                Claims.Subject,
                 options.Value.SubjectClaimType,
-                options.Value.PersonIdentifierClaimType
+                options.Value.PersonIdentifierClaimType,
             ];
         }
 
@@ -40,23 +42,25 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         {
             // Determine, which claims are requested by the client application and to which token they should be added.
             // Also collect "resources" (=> Audience) that are requested by the client application.
-            HashSet<string> idTokenClaims = [..context.Application.Properties.RequestedClaimTypes, .._options.Value.DefaultIdTokenClaims];
-            HashSet<string> accessTokenClaims = [.._options.Value.DefaultAccessTokenClaims];
+            HashSet<ClaimType> idTokenClaims = [..context.Application.Properties.RequestedClaimTypes, .._options.Value.DefaultIdTokenClaims];
+            HashSet<ClaimType> accessTokenClaims = [.._options.Value.DefaultAccessTokenClaims];
             var resources = new HashSet<string>();
 
             foreach (var scope in context.Scopes)
             {
+                var scopeClaimTypes = scope.Properties.RequestedClaimTypes.Select(x => new ClaimType(x));
+
                 if (scope.Properties.TargetToken.Contains(Destinations.IdentityToken))
-                    idTokenClaims.UnionWith(scope.Properties.RequestedClaimTypes);
+                    idTokenClaims.UnionWith(scopeClaimTypes);
 
                 if (scope.Properties.TargetToken.Contains(Destinations.AccessToken) || !scope.Properties.TargetToken.Any())
-                    accessTokenClaims.UnionWith(scope.Properties.RequestedClaimTypes);
+                    accessTokenClaims.UnionWith(scopeClaimTypes);
 
                 resources.UnionWith(scope.Resources);
             }
 
             // Load all claims that are requested by the client application
-            var requestedClaims = new HashSet<string>(idTokenClaims.Concat(accessTokenClaims).Concat(_essentialClaims));
+            var requestedClaims = new HashSet<ClaimType>(idTokenClaims.Concat(accessTokenClaims).Concat(_essentialClaims));
             var userClaims = await LoadUserClaims(subjectUser, requestedClaims, ct);
 
             // Create the claims-based identity that will be used by OpenIddict to generate tokens.
@@ -84,10 +88,17 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         }
 
         
-        public async Task<List<Model.Claim>> LoadUserClaims(ClaimsPrincipal user, HashSet<string> requestedClaimTypes, CancellationToken ct)
+        public async Task<List<Model.Claim>> LoadUserClaims(ClaimsPrincipal user, HashSet<ClaimType> requestedClaimTypes, CancellationToken ct)
         {
             var userClaims = new List<Model.Claim>();
-            
+            var claimProviderContext = new ClaimProviderContext
+            {
+                User = user,
+                RequestedClaimTypes = _claimProviders.SelectMany(x => x.RequiredClaimTypes)
+                    .Concat(requestedClaimTypes)
+                    .ToHashSet(),
+            };
+
             foreach (var cp in _claimProviders)
             {
                 if (!cp.CanProvideAnyOf(requestedClaimTypes))
@@ -95,16 +106,15 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
                     continue;
                 }
 
-                var claims = await cp.GetClaimsAsync(user, userClaims, requestedClaimTypes, ct);
-                userClaims.AddRange(claims.Select(x => new Model.Claim(x.Type, x.Value)));
+                await cp.AddProviderClaimsToContext(claimProviderContext, ct);
             }
 
-            return userClaims;
+            return claimProviderContext.Claims.ToList();
         }
 
         private void OrderClaimProviders(List<IClaimProvider> claimProviders)
         {
-            var providedClaims = new HashSet<string>();
+            var providedClaims = new HashSet<ClaimType>();
 
             for(int i = 0; i < claimProviders.Count; i++)
             {
@@ -138,11 +148,11 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         private static readonly IEnumerable<string> BothTokens = [Destinations.IdentityToken, Destinations.AccessToken];
 
 
-        private static IEnumerable<string> GetDestinations(Claim claim, HashSet<string> idTokenClaims, HashSet<string> accessTokenClaims)
+        private static IEnumerable<string> GetDestinations(System.Security.Claims.Claim claim, HashSet<ClaimType> idTokenClaims, HashSet<ClaimType> accessTokenClaims)
         {
-            if (accessTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase))
+            if (accessTokenClaims.Contains(claim.Type))
             {
-                if (idTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase))
+                if (idTokenClaims.Contains(claim.Type))
                 {
                     return BothTokens;
                 }
@@ -151,7 +161,7 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
             }
 
 
-            if (idTokenClaims.Contains(claim.Type, StringComparer.OrdinalIgnoreCase))
+            if (idTokenClaims.Contains(claim.Type))
             {
                 return IdTokenOnly;
             }
@@ -162,8 +172,8 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
 
         private IEnumerable<Model.Claim> GetStaticClaimsAndUpdateClaimSets(
             OIDCContext context,
-            HashSet<string> idTokenClaims,
-            HashSet<string> accessTokenClaims)
+            HashSet<ClaimType> idTokenClaims,
+            HashSet<ClaimType> accessTokenClaims)
         {
             var result = new List<Model.Claim>();
 
@@ -177,7 +187,7 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
         }
 
 
-        private static IEnumerable<Model.Claim> GetStaticClaimsFromProps(List<Model.Claim> staticClaims, HashSet<string> claimTypeList)
+        private static IEnumerable<Model.Claim> GetStaticClaimsFromProps(List<Model.Claim> staticClaims, HashSet<ClaimType> claimTypeList)
         {
             claimTypeList.UnionWith(staticClaims.Select(x => x.Type));
             return staticClaims;

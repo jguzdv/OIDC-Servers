@@ -54,6 +54,7 @@ public partial class Endpoints
                 .SelectMany(x => x.Properties.RequestedClaimTypes)
                 .Except([Claims.Subject], StringComparer.OrdinalIgnoreCase) // We'll add the subject from the current user
                 .Append(options.Value.PersonIdentifierClaimType)
+                .Select(x => new ClaimType(x))
                 .ToHashSet();
 
             var userClaims = new List<Model.Claim>
@@ -66,11 +67,11 @@ public partial class Endpoints
 
             // OpenIddict will accept userinfo claims as a dictionary<string, object>
             // Since multiple claim providers might produce the same type, we'll group them by type
-            var result = userClaims.DistinctBy(x => (x.Type, x.Value))
-                .ToLookup(x => x.Type, x => x.Value, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary<IGrouping<string, string>, string, object>(
+            var result = userClaims
+                .ToLookup(x => x.Type, x => x.Value)
+                .ToDictionary(
                     x => x.Key,
-                    x => x.Count() == 1 ? x.First() : x.ToArray()
+                    x => (object)(x.Count() == 1 ? x.First() : x.ToArray())
                 );
 
             return Results.Ok(result);

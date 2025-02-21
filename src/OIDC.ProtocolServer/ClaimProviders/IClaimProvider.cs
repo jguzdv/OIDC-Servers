@@ -1,5 +1,7 @@
 ﻿using System.Security.Claims;
 
+using JGUZDV.OIDC.ProtocolServer.Model;
+
 namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders
 {
     public interface IClaimProvider
@@ -8,25 +10,24 @@ namespace JGUZDV.OIDC.ProtocolServer.ClaimProviders
         /// The claim types that this provider needs before it can run.
         /// This list can be used to build a execution order.
         /// </summary>
-        string[] RequiredClaimTypes { get; }
+        ClaimType[] RequiredClaimTypes { get; }
 
         /// <summary>
         /// The claim types that this provider can provide.
         /// </summary>
-        string[] ProvidedClaimTypes { get; }
+        ClaimType[] ProvidedClaimTypes { get; }
 
+        // TODO: Replace with "ShouldProvideClaims" method
         /// <summary>
         /// Determines if the provider can provide any of the requested claim types.
         /// </summary>
-        bool CanProvideAnyOf(IEnumerable<string> claimTypes);
+        bool CanProvideAnyOf(IEnumerable<ClaimType> claimTypes);
 
         /// <summary>
-        /// Get the claims for the current user.
+        /// Add the claims of this provider to the claim provider context.
         /// </summary>
-        Task<List<Model.Claim>> GetClaimsAsync(
-            ClaimsPrincipal currentUser, 
-            IEnumerable<Model.Claim> knownClaims, // TODO: this should probably be a ISet<>
-            IEnumerable<string> claimTypes, 
+        Task AddProviderClaimsToContext(
+            ClaimProviderContext context,
             CancellationToken ct);
 
     }
