@@ -153,9 +153,9 @@ services.AddOpenIddict()
             //.SetDeviceEndpointUris("connect/device")
             //.SetIntrospectionEndpointUris("connect/introspect")
             .SetTokenEndpointUris("connect/token")
-            .SetUserinfoEndpointUris("connect/userinfo")
+            .SetUserInfoEndpointUris("connect/userinfo")
             //.SetVerificationEndpointUris("connect/verify")
-            .SetLogoutEndpointUris("connect/endsession");
+            .SetEndSessionEndpointUris("connect/endsession");
 
         options
             .AllowAuthorizationCodeFlow()
@@ -189,10 +189,10 @@ services.AddOpenIddict()
         options.UseAspNetCore()
             .EnableStatusCodePagesIntegration()
             .EnableAuthorizationEndpointPassthrough()
-            .EnableLogoutEndpointPassthrough()
+            .EnableEndSessionEndpointPassthrough()
             .EnableTokenEndpointPassthrough()
-            .EnableUserinfoEndpointPassthrough()
-            .EnableVerificationEndpointPassthrough();
+            .EnableUserInfoEndpointPassthrough()
+            .EnableEndUserVerificationEndpointPassthrough();
     })
     // Register the OpenIddict validation components.
     .AddValidation(options =>
