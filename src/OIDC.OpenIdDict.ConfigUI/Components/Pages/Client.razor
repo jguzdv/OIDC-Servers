@@ -173,9 +173,9 @@
         ResponseTypePermissions.Add((OpenIddictConstants.Permissions.ResponseTypes.Token, "Token"));
 
         EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Authorization, "Authorization"));
-        EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Device, "Device"));
+        EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.DeviceAuthorization, "DeviceAuthorization"));
         EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Introspection, "Introspection"));
-        EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Logout, "Logout"));
+        EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.EndSession, "EndSession"));
         EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Revocation, "Revocation"));
         EndpointPermissions.Add((OpenIddictConstants.Permissions.Endpoints.Token, "Token"));
 
@@ -224,7 +224,7 @@
                     OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
                     OpenIddictConstants.Permissions.ResponseTypes.Code,
                     OpenIddictConstants.Permissions.Endpoints.Authorization,
-                    OpenIddictConstants.Permissions.Endpoints.Logout,
+                    OpenIddictConstants.Permissions.Endpoints.EndSession,
                     OpenIddictConstants.Permissions.Endpoints.Token,
 
                     OpenIddictConstants.Permissions.Prefixes.Scope + "openid",

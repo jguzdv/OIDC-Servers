@@ -36,8 +36,8 @@
 
     private void Remove(Claim item)
     {
-        NewType = item.Type;
-        NewValue = item.Value;
+        NewType = item.Type.Type;
+        NewValue = item.Value.Value;
         
         Items.Remove(item);
     }
