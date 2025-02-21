@@ -1,0 +1,17 @@
+[
+  {
+    "Name": "Server and Demo",
+    "Projects": [
+      {
+        "Path": "src\\OIDC.ProtocolServer\\OIDC.ProtocolServer.csproj",
+        "Action": "Start",
+        "DebugTarget": "OIDC.ProtocolServer"
+      },
+      {
+        "Path": "demo\\Demo-WebApp\\Demo-WebApp.csproj",
+        "Action": "Start",
+        "DebugTarget": "Demo_WebApp"
+      }
+    ]
+  }
+]
