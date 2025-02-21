@@ -47,6 +47,12 @@ internal class PrincipalClaimProvider : IClaimProvider
 
             foreach (var claimTypeMap in claimTypeMaps)
             {
+                // Skip claim, if issuer is unexpected
+                if (claimTypeMap.FromIssuer != null && claimTypeMap.FromIssuer != claim.Issuer)
+                {
+                    continue;
+                }
+
                 var actualType = claimTypeMap.AsClaimType ?? claimTypeMap.ClaimType;
                 var claimValue = claimTypeMap.Transformation switch
                 {

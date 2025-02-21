@@ -1,39 +1,18 @@
 ﻿
+using System.Text.Json.Serialization;
+
 namespace JGUZDV.OIDC.ProtocolServer.Model;
 
-public struct ClaimValue : IEquatable<ClaimValue>
+[JsonConverter(typeof(ClaimValueJsonConverter))]
+public readonly record struct ClaimValue(string Value)
 {
-    public ClaimValue(string value)
+    public readonly string Value
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(value));
-
-        Value = value;
-    }
-
-    public string Value { get; }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is ClaimValue value && Equals(value);
-    }
-
-    public bool Equals(ClaimValue other)
-    {
-        return Value == other.Value;
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(Value);
-    }
-
-    public static bool operator ==(ClaimValue left, ClaimValue right)
-    {
-        return left.Equals(right);
-    }
-
-    public static bool operator !=(ClaimValue left, ClaimValue right)
-    {
-        return !(left == right);
-    }
+        get;
+        init
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(value));
+            field = value;
+        }
+    } = Value;
 }

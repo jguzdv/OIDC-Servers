@@ -29,8 +29,9 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
 
             _essentialClaims =
             [
+                Claims.Subject,
                 options.Value.SubjectClaimType,
-                options.Value.PersonIdentifierClaimType
+                options.Value.PersonIdentifierClaimType,
             ];
         }
 

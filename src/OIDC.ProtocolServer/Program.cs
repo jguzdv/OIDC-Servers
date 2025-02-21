@@ -265,9 +265,10 @@ services.AddOptions<ClaimProviderOptions>()
 
 
 services
+    .AddClaimProvider<PrincipalClaimProvider>()
+    .AddClaimProvider<SubjectProvider>()
     .AddClaimProvider<ActiveDirectoryClaimProviderFacade>()
     .AddClaimProvider<JGUDirectoryClaimProvider>()
-    .AddClaimProvider<PrincipalClaimProvider>()
     .AddScoped<UserValidationProvider>();
 
 

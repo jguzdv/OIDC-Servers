@@ -1,6 +1,8 @@
-﻿
+﻿using System.Text.Json.Serialization;
+
 namespace JGUZDV.OIDC.ProtocolServer.Model;
 
+[JsonConverter(typeof(ClaimTypeJsonConverter))]
 public readonly record struct ClaimType(string Type)
 {
     public readonly string Type
