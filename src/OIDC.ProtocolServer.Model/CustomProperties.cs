@@ -8,9 +8,14 @@ namespace JGUZDV.OIDC.ProtocolServer.Model
     {
         protected static JsonSerializerOptions DefaultOptions => new()
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNamingPolicy = null,
+            PropertyNameCaseInsensitive = true,
             WriteIndented = true,
-            Converters = { new ClaimTypeJsonConverter(), new ClaimValueJsonConverter() }
+            Converters = { 
+                new ClaimJsonConverter(),
+                new ClaimTypeJsonConverter(), 
+                new ClaimValueJsonConverter() 
+            }
         };
 
         public const string PropertyName = "jgu-props";
@@ -24,7 +29,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Model
         }
 
         public List<Claim> StaticClaims { get; set; } = new();
-        public List<string> RequestedClaimTypes { get; set; } = new();
+        public List<ClaimType> RequestedClaimTypes { get; set; } = new();
 
         public MFAProps MFA { get; set; } = new();
     }

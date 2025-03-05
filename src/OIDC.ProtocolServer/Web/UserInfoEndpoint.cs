@@ -52,9 +52,8 @@ public partial class Endpoints
             var idClaims = scopes
                 .Where(x => x.Properties.TargetToken.Contains(Destinations.IdentityToken))
                 .SelectMany(x => x.Properties.RequestedClaimTypes)
-                .Except([Claims.Subject], StringComparer.OrdinalIgnoreCase) // We'll add the subject from the current user
+                .Except([Claims.Subject]) // We'll add the subject from the current user
                 .Append(options.Value.PersonIdentifierClaimType)
-                .Select(x => new ClaimType(x))
                 .ToHashSet();
 
             var userClaims = new List<Model.Claim>

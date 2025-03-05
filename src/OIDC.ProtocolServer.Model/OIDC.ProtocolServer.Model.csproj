@@ -14,4 +14,8 @@
       <PackageReference Include="OpenIddict.Abstractions" Version="6.1.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Converters\" />
+    </ItemGroup>
+
 </Project>

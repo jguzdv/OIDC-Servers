@@ -10,6 +10,8 @@
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
 
         <NoWarn>$(NoWarn);CA1416</NoWarn>
+
+        <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
     </PropertyGroup>
 
     <ItemGroup>

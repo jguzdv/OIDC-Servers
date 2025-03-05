@@ -47,7 +47,7 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
 
             foreach (var scope in context.Scopes)
             {
-                var scopeClaimTypes = scope.Properties.RequestedClaimTypes.Select(x => new ClaimType(x));
+                var scopeClaimTypes = scope.Properties.RequestedClaimTypes;
 
                 if (scope.Properties.TargetToken.Contains(Destinations.IdentityToken))
                     idTokenClaims.UnionWith(scopeClaimTypes);
