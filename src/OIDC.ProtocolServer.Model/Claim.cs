@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace JGUZDV.OIDC.ProtocolServer.Model;
 
+[JsonConverter(typeof(ClaimJsonConverter))]
 public record Claim(ClaimType Type, ClaimValue Value)
 {
     [JsonConstructor]
