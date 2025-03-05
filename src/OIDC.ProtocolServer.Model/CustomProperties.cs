@@ -11,7 +11,11 @@ namespace JGUZDV.OIDC.ProtocolServer.Model
             PropertyNamingPolicy = null,
             PropertyNameCaseInsensitive = true,
             WriteIndented = true,
-            Converters = { new ClaimTypeJsonConverter(), new ClaimValueJsonConverter() }
+            Converters = { 
+                new ClaimJsonConverter(),
+                new ClaimTypeJsonConverter(), 
+                new ClaimValueJsonConverter() 
+            }
         };
 
         public const string PropertyName = "jgu-props";

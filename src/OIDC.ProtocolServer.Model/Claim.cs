@@ -19,28 +19,31 @@ public class ClaimJsonConverter : JsonConverter<Claim>
         string? type = null;
         string? value = null;
 
-        for (int i = 0; i < 2; i++)
+        if(reader.TokenType != JsonTokenType.StartObject)
         {
-            if (reader.Read())
-            {
-                if (reader.TokenType == JsonTokenType.PropertyName)
-                {
-                    var propertyName = reader.GetString() ?? "-";
+            throw new JsonException();
+        }
 
-                    if(propertyName.Equals("Type", StringComparison.OrdinalIgnoreCase))
-                    {
-                        reader.Read();
-                        type = reader.GetString();
-                    }
-                    else if (propertyName.Equals("Value", StringComparison.OrdinalIgnoreCase))
-                    {
-                        reader.Read();
-                        value = reader.GetString();
-                    }
-                    else
-                    {
-                        throw new JsonException();
-                    }
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndObject)
+            {
+                return type is not null && value is not null
+                    ? new Claim(type, value)
+                    : throw new JsonException("Did not find type and value in json deserialization");
+            }
+
+            if (reader.TokenType == JsonTokenType.PropertyName)
+            {
+                var propertyName = reader.GetString() ?? throw new JsonException();
+
+                if (propertyName.Equals("Type", StringComparison.OrdinalIgnoreCase))
+                {
+                    ReadValue(ref type, ref reader);
+                }
+                else if (propertyName.Equals("Value", StringComparison.OrdinalIgnoreCase))
+                {
+                    ReadValue(ref value, ref reader);
                 }
                 else
                 {
@@ -53,13 +56,15 @@ public class ClaimJsonConverter : JsonConverter<Claim>
             }
         }
 
-        if(type is null || value is null)
-        {
-            throw new JsonException();
-        }
-
-        return new Claim(type, value);
+        throw new JsonException();
     }
+
+    private static void ReadValue(ref string? property, ref Utf8JsonReader reader)
+    {
+        reader.Read();
+        property = reader.GetString();
+    }
+
     public override void Write(Utf8JsonWriter writer, Claim value, JsonSerializerOptions options)
     {
         writer.WriteStartObject();
