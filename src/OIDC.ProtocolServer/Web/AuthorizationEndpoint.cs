@@ -41,6 +41,7 @@ public partial class Endpoints
             TimeProvider timeProvider,
             MeterContainer meterContainer,
             ILogger<OIDC> logger,
+            ILogger<SecurityAudit> auditLogger,
             CancellationToken ct
             )
         {
@@ -87,6 +88,7 @@ public partial class Endpoints
                 identity.SetIdentityTokenLifetime(TimeSpan.FromSeconds(oidcContext.Application.Properties.MaxTokenLifetimeSeconds));
 
                 // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
+                auditLogger.LogInformation("Successfully authorized user {subject}", identity.FindFirst(Claims.Subject)?.Value);
                 return Results.SignIn(new ClaimsPrincipal(identity), authenticationScheme: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             }
             catch (Exception ex)

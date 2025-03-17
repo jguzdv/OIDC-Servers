@@ -8,7 +8,6 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 
 using OpenIddict.Abstractions;
@@ -33,6 +32,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Web
                 OIDCContextProvider oidcContextProvider,
                 IdentityProvider identityProvider,
                 ILogger<OIDC> logger,
+                ILogger<SecurityAudit> auditLogger,
                 CancellationToken ct
             ) {
                 try
@@ -80,7 +80,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Web
                     case SignInHttpResult signInHttpResult:
                         LogMessages.TokenExchangeFinished(logger,
                             oidcRequest?.ClientId,
-                            signInHttpResult.Principal.FindFirstValue("zdv_upn"),
+                            signInHttpResult.Principal.FindFirstValue("sub"),
                             true,
                             signInHttpResult.Properties?.Items);
                         break;
@@ -88,7 +88,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Web
                     case ForbidHttpResult forbidHttpResult:
                         LogMessages.TokenExchangeFinished(logger,
                             oidcRequest?.ClientId,
-                            httpContext?.User?.FindFirstValue("upn"),
+                            httpContext?.User?.FindFirstValue("sub"),
                             false,
                             forbidHttpResult.Properties?.Items);
                         break;
@@ -96,7 +96,7 @@ namespace JGUZDV.OIDC.ProtocolServer.Web
                     default:
                         LogMessages.UnexpectedExchangeHttpResultType(logger,
                             oidcRequest?.ClientId,
-                            httpContext?.User?.FindFirstValue("upn"),
+                            httpContext?.User?.FindFirstValue("sub"),
                             result?.GetType().FullName);
                         break;
                 }
