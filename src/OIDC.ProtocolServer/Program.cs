@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 
 using JGUZDV.ActiveDirectory;
 using JGUZDV.ActiveDirectory.Configuration;
+using JGUZDV.AspNetCore.Hosting;
 using JGUZDV.OIDC.ProtocolServer.ActiveDirectory;
 using JGUZDV.OIDC.ProtocolServer.ClaimProviders;
 using JGUZDV.OIDC.ProtocolServer.Configuration;
@@ -13,6 +14,7 @@ using JGUZDV.OpenIddict.KeyManager.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
@@ -21,34 +23,37 @@ using OIDC.ProtocolServer.OpenTelemetry;
 
 using OpenIddict.Abstractions;
 
+using BlazorInteractivityModes = JGUZDV.AspNetCore.Hosting.Components.BlazorInteractivityModes;
 using Constants = JGUZDV.OIDC.ProtocolServer.Constants;
 using OpenIddictConstants = OpenIddict.Abstractions.OpenIddictConstants;
 
 IdentityModelEventSource.ShowPII = true;
 JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
+
 // Basic setup & logging
-var builder = WebApplication.CreateBuilder(args);
+var builder = JGUZDVHostApplicationBuilder.Create(args);
 var services = builder.Services;
 
+builder.AddLogging();
+
 // Default OpenTelemetry config, needs the OpenTelemetry config section.
-builder.AddJGUZDVOpenTelemetry();
+builder.Builder.AddJGUZDVOpenTelemetry();
 services.AddSingleton<MeterContainer>();
+
 
 services.AddSingleton(sp => TimeProvider.System);
 services.AddSingleton(sp => (IConfigurationRoot)sp.GetRequiredService<IConfiguration>());
-
-builder.UseJGUZDVLogging();
 
 // Some functions will need MVC, so we add it.
 // To have some folder structures, we set the view location formats.
 services.AddControllersWithViews()
     .AddRazorOptions(opt =>
-    {
-        opt.ViewLocationFormats.Clear();
-        opt.ViewLocationFormats.Add("/Web/Views/{1}/{0}.cshtml");
-        opt.ViewLocationFormats.Add("/Web/Views/Shared/{0}.cshtml");
-    });
+{
+    opt.ViewLocationFormats.Clear();
+    opt.ViewLocationFormats.Add("/Web/Views/{1}/{0}.cshtml");
+    opt.ViewLocationFormats.Add("/Web/Views/Shared/{0}.cshtml");
+});
 
 // Add the database context and register OpenIddict.
 services.AddDbContext<ApplicationDbContext>(options =>
@@ -58,7 +63,6 @@ services.AddDbContext<ApplicationDbContext>(options =>
     options.UseOpenIddict();
 });
 
-
 if (builder.Environment.IsDevelopment())
 {
     services.AddDataProtection();
@@ -67,8 +71,8 @@ if (builder.Environment.IsDevelopment())
 else
 {
     // Data protection and distributed cache are required, since else cookies will explode in size.
-    builder.AddJGUZDVDataProtection();
-    services.AddDistributedSqlServerCache(opt => builder.Configuration.GetSection("DistributedCache").Bind(opt));
+    builder.AddDataProtection();
+    builder.AddDistributedCache();
 }
 
 
@@ -82,20 +86,20 @@ services.AddAuthentication(options =>
     .AddOpenIdConnect(
         Constants.AuthenticationSchemes.OIDC,
         options =>
-        {
+{
             builder.Configuration
                 .GetSection("Authentication:OpenIdConnect")
                 .Bind(options);
 
-            // We want to be able to map all incomming claims, since we read them in PrincipalClaimProvider.
-            options.ClaimActions.MapAll();
+    // We want to be able to map all incomming claims, since we read them in PrincipalClaimProvider.
+    options.ClaimActions.MapAll();
 
-            // This allows us to distinguish between the remote OIDC login at the provider and the local login.
-            options.TokenValidationParameters.AuthenticationType = Constants.AuthenticationTypes.RemoteOIDC;
+    // This allows us to distinguish between the remote OIDC login at the provider and the local login.
+    options.TokenValidationParameters.AuthenticationType = Constants.AuthenticationTypes.RemoteOIDC;
         }
     )
 
-    // Add OIDC for MFA'd logins.
+// Add OIDC for MFA'd logins.
     .AddOpenIdConnect(
         Constants.AuthenticationSchemes.MFA,
         options =>
