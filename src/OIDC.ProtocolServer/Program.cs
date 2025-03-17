@@ -41,7 +41,6 @@ builder.AddLogging();
 builder.Builder.AddJGUZDVOpenTelemetry();
 services.AddSingleton<MeterContainer>();
 
-
 services.AddSingleton(sp => TimeProvider.System);
 services.AddSingleton(sp => (IConfigurationRoot)sp.GetRequiredService<IConfiguration>());
 
@@ -73,6 +72,7 @@ else
     // Data protection and distributed cache are required, since else cookies will explode in size.
     builder.AddDataProtection();
     builder.AddDistributedCache();
+    builder.AddForwardedHeaders();
 }
 
 
@@ -303,6 +303,8 @@ app.Use(async (context, next) =>
         return;
     }
 });
+
+app.UseForwardedHeaders();
 
 if (app.Environment.IsProduction())
 {
