@@ -108,7 +108,7 @@ namespace JGUZDV.OIDC.ProtocolServer.OpenIddictExt
                 await cp.AddProviderClaimsToContext(claimProviderContext, ct);
             }
 
-            return claimProviderContext.Claims.ToList();
+            return [.. claimProviderContext.Claims.Distinct()];
         }
 
         private void OrderClaimProviders(List<IClaimProvider> claimProviders)
