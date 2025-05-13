@@ -455,7 +455,7 @@ internal static class Startup
                 CustomProperties.PropertyName,
                 (new ScopeProperties
                     {
-                        RequestedClaimTypes = ["sub", "zdv_sid", "zdv_upn", "upn", "security_identifier", "uid"]
+                        RequestedClaimTypes = ["sub", "zdv_sid", "zdv_upn", "upn", "security_identifier", "uid", "mail"]
                     }).Serialize()
                 }
             }
@@ -567,7 +567,7 @@ internal static class Startup
                 CustomProperties.PropertyName,
                 (new ScopeProperties
                     {
-                        RequestedClaimTypes = ["email", "birthdate", "name", "family_name", "given_name", "gender", "locale", "preferred_username", "picture", "updated_at", "website", "zoneinfo"],
+                        RequestedClaimTypes = ["mail", "email", "birthdate", "name", "family_name", "given_name", "gender", "locale", "preferred_username", "picture", "updated_at", "website", "zoneinfo"],
                         TargetToken = { "id_token" }
                     }).Serialize()
                 }

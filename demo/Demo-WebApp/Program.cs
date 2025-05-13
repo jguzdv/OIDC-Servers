@@ -34,6 +34,7 @@ builder.Services.AddAuthentication(options =>
                 options.GetClaimsFromUserInfoEndpoint = true;
                 options.Scope.Clear();
                 options.Scope.Add("openid");
+                options.Scope.Add("profile");
                 options.Scope.Add("offline_access");
 
                 options.ClaimActions.MapAll();
