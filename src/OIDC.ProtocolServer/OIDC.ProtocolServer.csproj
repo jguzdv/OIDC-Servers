@@ -8,9 +8,7 @@
         <UserSecretsId>47a7c02d-e893-4ff7-b122-535e7117d6f9</UserSecretsId>
         <SelfContained>false</SelfContained>
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-
         <NoWarn>$(NoWarn);CA1416</NoWarn>
-
         <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
     </PropertyGroup>
 
@@ -35,8 +33,11 @@
         <PackageReference Include="OpenIdDict.EntityFrameworkCore" Version="6.1.0" />
 
         <PackageReference Include="Dapper" Version="2.1.66" />
-
+        <PackageReference Include="Quartz" Version="3.14.0" />
         <PackageReference Include="OpenIddict.Quartz" Version="6.1.0" />
+        <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.14.0" />
+        <PackageReference Include="Quartz.Extensions.Hosting" Version="3.14.0" />
+        
     </ItemGroup>
 
     <ItemGroup>
