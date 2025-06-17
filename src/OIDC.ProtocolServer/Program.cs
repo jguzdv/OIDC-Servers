@@ -20,7 +20,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
 
 using OIDC.ProtocolServer.OpenTelemetry;
-
+using Quartz;
 using OpenIddict.Abstractions;
 
 using BlazorInteractivityModes = JGUZDV.AspNetCore.Hosting.Components.BlazorInteractivityModes;
@@ -129,8 +129,10 @@ services.AddAuthentication(options =>
 
 services.AddTransient<IPostConfigureOptions<OpenIdConnectOptions>, PostConfigureOIDCOptions>();
 
-
+services.AddQuartzHostedService(
+    opts => opts.WaitForJobsToComplete = true);
 services.AddOpenIddict()
+    
     .AddCore(options =>
     {
         options.UseEntityFrameworkCore()
