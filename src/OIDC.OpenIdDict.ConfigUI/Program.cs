@@ -1,5 +1,4 @@
-﻿using JGUZDV.OIDC.ConfigUI.Data;
-using JGUZDV.OIDC.ProtocolServer.Model;
+﻿using JGUZDV.OIDC.ProtocolServer.Model;
 
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -46,7 +45,6 @@ namespace JGUZDV.OIDC.ConfigUI
             });
 #endif
 
-            serviceCollection.AddSingleton<ConfigAppContext>();
             serviceCollection.AddDbContext<ApplicationDbContext>(
                 ef =>
                 {

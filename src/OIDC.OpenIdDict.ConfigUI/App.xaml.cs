@@ -1,13 +1,4 @@
-﻿using System.Configuration;
-using System.Data;
-using System.Windows;
-
-using JGUZDV.OIDC.ConfigUI.Data;
-using JGUZDV.OIDC.ProtocolServer.Model;
-
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+﻿using System.Windows;
 
 namespace JGUZDV.OIDC.ConfigUI
 {

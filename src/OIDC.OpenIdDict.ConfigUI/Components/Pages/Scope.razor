@@ -87,7 +87,7 @@
         if (!_createNew)
         {
             // Load the client details
-            _scope = await _scopeManager.FindByNameAsync(ScopeName);
+            _scope = await _scopeManager.FindByNameAsync(ScopeName!);
             if (_scope == null)
             {
                 // TODO: Add toasts and use it here

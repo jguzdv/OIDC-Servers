@@ -24,10 +24,10 @@
         </tr>
         <tr>
             <th>
-                <input type="text" value="@IdSearchString" @oninput="(e) => { IdSearchString = e.Value.ToString(); FilterClients(); }" class="form-control form-control-search form-control-sm" id="search-client-id">
+                <input type="text" value="@IdSearchString" @oninput="(e) => { IdSearchString = e.Value?.ToString(); FilterClients(); }" class="form-control form-control-search form-control-sm" id="search-client-id">
             </th>
             <th>
-                <input type="text" value="@NameSearchString" @oninput="(e) => { NameSearchString = e.Value.ToString(); FilterClients(); }" class="form-control form-control-search form-control-sm" id="search-client-name">
+                <input type="text" value="@NameSearchString" @oninput="(e) => { NameSearchString = e.Value?.ToString(); FilterClients(); }" class="form-control form-control-search form-control-sm" id="search-client-name">
             </th>
             <th></th>
             <th></th>
@@ -64,8 +64,8 @@
     private List<OpenIddictApplicationDescriptor> _applications = [];
     private List<OpenIddictApplicationDescriptor> _filteredApplications = [];
 
-    private string IdSearchString { get; set; } = string.Empty;
-    private string NameSearchString { get; set; } = string.Empty;
+    private string? IdSearchString { get; set; }
+    private string? NameSearchString { get; set; }
     
 
     protected override async Task OnParametersSetAsync()

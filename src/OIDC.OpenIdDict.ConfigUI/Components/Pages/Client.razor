@@ -79,14 +79,14 @@
                         <div class="mb-3">
                             <h3>Scopes</h3>
                             <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" role="switch" id="showAllScopes" @onclick=@(() => _showAllScopes = !_showAllScopes) checked="@_showAllScopes">
+                                <input class="form-check-input" type="checkbox" role="switch" id="showAllScopes" @onclick=@(() => ShowAllScopes = !ShowAllScopes) checked="@ShowAllScopes">
                                 <label class="form-check-label" for="showAllScopes">Show all scopes</label>
                             </div>
                             @foreach (var permission in ScopePermissions.Where(x => ApplicationDescriptor.Permissions.Contains(x.Value)).OrderBy(x => x.Displayname))
                             {
                                 <PermissionToggle Permissions="@ApplicationDescriptor.Permissions" Permission="@permission.Value" DisplayName="@permission.Displayname" />
                             }
-                            @if (_showAllScopes)
+                            @if (ShowAllScopes)
                             {
                                 @foreach (var permission in ScopePermissions.Where(x => !ApplicationDescriptor.Permissions.Contains(x.Value)).OrderBy(x => x.Displayname))
                                 {
@@ -116,11 +116,11 @@
 
                         <div class="mb-3">
                             <h3 class="h4">Redirect Uris</h3>
-                            <UriList Items="@ApplicationDescriptor.RedirectUris" ShowAllItems="@_showAllRedirectUris" />
+                            <UriList Items="@ApplicationDescriptor.RedirectUris" ShowAllItems="@ShowAllRedirectUris" />
                         </div>
                         <div class="mb-3">
                             <h3 class="h4">Post-logout Redirect Uris</h3>
-                            <UriList Items="@ApplicationDescriptor.PostLogoutRedirectUris" ShowAllItems="@_showAllPLRedirectUris" />
+                            <UriList Items="@ApplicationDescriptor.PostLogoutRedirectUris" ShowAllItems="@ShowAllPLRedirectUris" />
                         </div>
                     </div>
                 </div>
@@ -140,9 +140,9 @@
     private object? _client;
     private bool _createNew;
 
-    private bool _showAllScopes;
-    private bool _showAllRedirectUris;
-    private bool _showAllPLRedirectUris;
+    private bool ShowAllScopes { get; set; }
+    private bool ShowAllRedirectUris { get; set; }
+    private bool ShowAllPLRedirectUris { get; set; }
 
     private OpenIddictApplicationDescriptor ApplicationDescriptor { get; set; } = new();
     private ApplicationProperties ApplicationProperties { get; set; } = new();
@@ -195,7 +195,7 @@
         await base.OnParametersSetAsync();
 
         _createNew = ClientId == null;
-        _showAllScopes = _createNew;
+        ShowAllScopes = _createNew;
 
         if (!_createNew)
         {
@@ -232,8 +232,8 @@
             ApplicationProperties = new ApplicationProperties();
         }
 
-        _showAllRedirectUris = ApplicationDescriptor.RedirectUris.Count() <= 3;
-        _showAllPLRedirectUris = ApplicationDescriptor.PostLogoutRedirectUris.Count() <= 3;
+        ShowAllRedirectUris = ApplicationDescriptor.RedirectUris.Count() <= 3;
+        ShowAllPLRedirectUris = ApplicationDescriptor.PostLogoutRedirectUris.Count() <= 3;
     }
 
 

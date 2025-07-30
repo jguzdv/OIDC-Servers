@@ -21,7 +21,7 @@
         </tr>
         <tr>
             <th></th>
-            <th><input type="text" value="@SearchString" @oninput="(e) => { SearchString = e.Value.ToString(); FilterScopes(); }" class="form-control form-control-search form-control-sm" id="search-client-id"></th>
+            <th><input type="text" value="@SearchString" @oninput="(e) => { SearchString = e.Value?.ToString(); FilterScopes(); }" class="form-control form-control-search form-control-sm" id="search-client-id"></th>
             <th></th>
             <th></th>
         </tr>
@@ -46,7 +46,7 @@
     private List<OpenIddictScopeDescriptor> _scopes = [];
     private List<OpenIddictScopeDescriptor> _filteredScopes = [];
 
-    private string SearchString { get; set; } = string.Empty;
+    private string? SearchString { get; set; }
 
 
     protected override async Task OnParametersSetAsync()
