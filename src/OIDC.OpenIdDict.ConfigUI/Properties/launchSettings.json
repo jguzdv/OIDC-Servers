@@ -2,7 +2,7 @@
   "profiles": {
     "OIDC.OpenIdDict.ConfigUI": {
       "commandName": "Project",
-      "commandLineArgs": "directorydb-1.zdv.uni-mainz.de ZDVDEV_OpenIdServer"
+      "commandLineArgs": "directorydb-1.zdv.uni-mainz.de OpenIdServer"
     }
   }
 }
