@@ -5,7 +5,7 @@
     </div>
 
     <div class="mt-3">
-        @foreach (var item in (ShowAllItems ? Items : Items.Take(3)))
+        @foreach (var item in (ShowAllItems ? Items : Items.Take(3)).OrderBy(x => x.ToString()))
         {
             <div>
                 <span class="badge badge-hover text-bg-secondary me-2 mb-2  p-2">
