@@ -37,8 +37,13 @@ var services = builder.Services;
 
 builder.AddLogging();
 
-// Default OpenTelemetry config, needs the OpenTelemetry config section.
-builder.Builder.AddJGUZDVOpenTelemetry();
+// OpenTelemetry for monitoring. If the host has added it for us, we won't add it anymore.
+if (!builder.HasOpenTelemetry)
+{
+    builder.Builder.AddJGUZDVOpenTelemetry();
+}
+
+// OpenTelemetry Meter
 services.AddSingleton<MeterContainer>();
 
 services.AddSingleton(sp => TimeProvider.System);
