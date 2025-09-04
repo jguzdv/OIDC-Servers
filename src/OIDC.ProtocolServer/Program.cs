@@ -33,12 +33,22 @@ JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 // Basic setup & logging
 var builder = JGUZDVHostApplicationBuilder.Create(args);
-var services = builder.Services;
 
 builder.AddLogging();
 
-// OpenTelemetry Meter
-services.AddSingleton<MeterContainer>();
+// Create a logger to give some startup information. As OpenTelemetry and Azure Monitor are very 'quiet', these
+// are the only informations we will get during startup.
+using (var sp = builder.Services.BuildServiceProvider())
+{
+    using var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = loggerFactory.CreateLogger("JGUZDV.AspNetCore.OpenTelemetry.Extensions");
+
+    // Default OpenTelemetry config, needs the OpenTelemetry config section.
+    builder.Builder.AddJGUZDVOpenTelemetry(logger);
+    builder.Services.AddSingleton<MeterContainer>();
+}
+
+var services = builder.Services;
 
 services.AddSingleton(sp => TimeProvider.System);
 services.AddSingleton(sp => (IConfigurationRoot)sp.GetRequiredService<IConfiguration>());
