@@ -37,12 +37,6 @@ var services = builder.Services;
 
 builder.AddLogging();
 
-// OpenTelemetry for monitoring. If the host has added it for us, we won't add it anymore.
-if (!builder.HasOpenTelemetry)
-{
-    builder.Builder.AddJGUZDVOpenTelemetry();
-}
-
 // OpenTelemetry Meter
 services.AddSingleton<MeterContainer>();
 

@@ -13,7 +13,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="JGUZDV.AspNetCore.Hosting" Version="1.5.24" />
+        <PackageReference Include="JGUZDV.AspNetCore.Hosting" Version="1.5.25" />
         <PackageReference Include="JGUZDV.ActiveDirectory" Version="1.4.0" />
         <PackageReference Include="JGUZDV.OpenIddict.KeyManager" Version="1.0.0-beta2" />
         
