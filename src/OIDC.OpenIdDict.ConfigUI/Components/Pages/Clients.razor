@@ -34,7 +34,7 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var app in _filteredApplications.OrderBy(x => x.ClientId))
+        @foreach (var (identifier, app) in _filteredApplications.OrderBy(x => x.Value.ClientId))
         {
             <tr>
                 <td>@app.ClientId</td>
@@ -52,7 +52,7 @@
                     </ul>
                 </td>
                 <td class="text-nowrap">
-                    <a class="btn btn-primary" href="/client/@app.ClientId"><i class="fa fa-fw fa-pencil"></i></a>
+                    <a class="btn btn-primary" href="/client/@identifier"><i class="fa fa-fw fa-pencil"></i></a>
                     <a class="btn btn-danger"><i class="fa fa-fw fa-trash"></i></a>
                 </td>
             </tr>
@@ -61,8 +61,8 @@
 </table>
 
 @code {
-    private List<OpenIddictApplicationDescriptor> _applications = [];
-    private List<OpenIddictApplicationDescriptor> _filteredApplications = [];
+    private Dictionary<string, OpenIddictApplicationDescriptor> _applications = [];
+    private Dictionary<string, OpenIddictApplicationDescriptor> _filteredApplications = [];
 
     private string? IdSearchString { get; set; }
     private string? NameSearchString { get; set; }
@@ -73,10 +73,12 @@
         var applications = _applicationManager.ListAsync();
         await foreach (var application in applications)
         {
+            var identifier = await _applicationManager.GetIdAsync(application);
+
             var appDescriptor = new OpenIddictApplicationDescriptor();
             await _applicationManager.PopulateAsync(appDescriptor, application);
 
-            _applications.Add(appDescriptor);
+            _applications.Add(identifier, appDescriptor);
         }
 
         _filteredApplications = _applications;
@@ -86,9 +88,9 @@
     {
         _filteredApplications = _applications
             .Where(app =>
-                (string.IsNullOrEmpty(IdSearchString) || (!string.IsNullOrEmpty(app.ClientId) && app.ClientId.Contains(IdSearchString, StringComparison.OrdinalIgnoreCase))) &&
-                (string.IsNullOrEmpty(NameSearchString) || (!string.IsNullOrEmpty(app.DisplayName) && app.DisplayName.Contains(NameSearchString, StringComparison.OrdinalIgnoreCase)))
+                (string.IsNullOrEmpty(IdSearchString) || (!string.IsNullOrEmpty(app.Value.ClientId) && app.Value.ClientId.Contains(IdSearchString, StringComparison.OrdinalIgnoreCase))) &&
+                (string.IsNullOrEmpty(NameSearchString) || (!string.IsNullOrEmpty(app.Value.DisplayName) && app.Value.DisplayName.Contains(NameSearchString, StringComparison.OrdinalIgnoreCase)))
             )
-            .ToList();
+            .ToDictionary(x => x.Key, x => x.Value);
     }
 }

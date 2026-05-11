@@ -1,6 +1,7 @@
 @page "/client"
-@page "/client/{*clientId}"
+@page "/client/{*identifier}"
 @using JGUZDV.OIDC.ProtocolServer.Model
+@using System.Windows
 @using global::OpenIddict.Abstractions
 
 @inject IOpenIddictApplicationManager _applicationManager
@@ -135,7 +136,9 @@
 
 @code {
     [Parameter]
-    public required string ClientId { get; set; }
+    public string? Identifier { get; set; }
+
+    public string? ClientId { get; set; }
 
     private object? _client;
     private bool _createNew;
@@ -194,16 +197,17 @@
     {
         await base.OnParametersSetAsync();
 
-        _createNew = ClientId == null;
+        _createNew = Identifier is null;
         ShowAllScopes = _createNew;
 
         if (!_createNew)
         {
             // Load the client details
-            _client = await _applicationManager.FindByClientIdAsync(ClientId!);
+            _client = await _applicationManager.FindByIdAsync(Identifier!);
             if (_client == null)
             {
-                // TODO: Add toasts and use it here
+                MessageBox.Show("The client could not be loaded");
+
                 NavigationManager.NavigateTo("/");
                 return;
             }

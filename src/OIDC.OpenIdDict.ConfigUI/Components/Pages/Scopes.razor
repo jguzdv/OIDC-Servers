@@ -20,8 +20,8 @@
             <th></th>
         </tr>
         <tr>
-            <th></th>
-            <th><input type="text" value="@SearchString" @oninput="(e) => { SearchString = e.Value?.ToString(); FilterScopes(); }" class="form-control form-control-search form-control-sm" id="search-client-id"></th>
+            <th><input type="text" value="@IdSearchString" @oninput="(e) => { IdSearchString = e.Value?.ToString(); FilterScopes(); }" class="form-control form-control-search form-control-sm" id="search-client-id"></th>
+            <th><input type="text" value="@NameSearchString" @oninput="(e) => { NameSearchString = e.Value?.ToString(); FilterScopes(); }" class="form-control form-control-search form-control-sm" id="search-client-id"></th>
             <th></th>
             <th></th>
         </tr>
@@ -46,7 +46,8 @@
     private List<OpenIddictScopeDescriptor> _scopes = [];
     private List<OpenIddictScopeDescriptor> _filteredScopes = [];
 
-    private string? SearchString { get; set; }
+    private string? IdSearchString { get; set; }
+    private string? NameSearchString { get; set; }
 
 
     protected override async Task OnParametersSetAsync()
@@ -67,7 +68,8 @@
     {
         _filteredScopes = _scopes
             .Where(scope =>
-                string.IsNullOrEmpty(SearchString) || (!string.IsNullOrEmpty(scope.DisplayName) && scope.DisplayName.Contains(SearchString, StringComparison.OrdinalIgnoreCase))
+                string.IsNullOrEmpty(IdSearchString) || (!string.IsNullOrEmpty(scope.Name) && scope.Name.Contains(IdSearchString, StringComparison.OrdinalIgnoreCase)) ||
+                string.IsNullOrEmpty(NameSearchString) || (!string.IsNullOrEmpty(scope.DisplayName) && scope.DisplayName.Contains(NameSearchString, StringComparison.OrdinalIgnoreCase))
             )
             .ToList();
     }
