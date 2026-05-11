@@ -1,41 +1,39 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
-        <Nullable>enable</Nullable>
-        <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>JGUZDV.OIDC.ProtocolServer</RootNamespace>
         <UserSecretsId>47a7c02d-e893-4ff7-b122-535e7117d6f9</UserSecretsId>
         <SelfContained>false</SelfContained>
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
         <NoWarn>$(NoWarn);CA1416</NoWarn>
+
         <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="JGUZDV.AspNetCore.Hosting" Version="1.5.25" />
-        <PackageReference Include="JGUZDV.ActiveDirectory" Version="1.4.0" />
+        <PackageReference Include="JGUZDV.AspNetCore.Hosting" Version="1.6.0" />
+        <PackageReference Include="JGUZDV.ActiveDirectory" Version="1.4.1" />
         <PackageReference Include="JGUZDV.OpenIddict.KeyManager" Version="1.0.0-beta2" />
         
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="9.0.7" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.7" />
         
-        <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="9.0.7" />
-        <PackageReference Include="Microsoft.Extensions.Caching.SqlServer" Version="9.0.7" />
-        <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="8.13.0" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.7">
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="10.0.7" />
+        <PackageReference Include="Microsoft.Extensions.Caching.SqlServer" Version="10.0.7" />
+        <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="8.18.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.7" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.7" />
         
-        <PackageReference Include="OpenIddict.AspNetCore" Version="6.4.0" />
-        <PackageReference Include="OpenIdDict.EntityFrameworkCore" Version="6.4.0" />
+        <PackageReference Include="OpenIddict.AspNetCore" Version="7.5.0" />
+        <PackageReference Include="OpenIdDict.EntityFrameworkCore" Version="7.5.0" />
 
-        <PackageReference Include="Dapper" Version="2.1.66" />
-        <PackageReference Include="Quartz" Version="3.14.0" />
-        <PackageReference Include="OpenIddict.Quartz" Version="6.4.0" />
-        <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.14.0" />
-        <PackageReference Include="Quartz.Extensions.Hosting" Version="3.14.0" />
+        <PackageReference Include="Dapper" Version="2.1.72" />
+        <PackageReference Include="Quartz" Version="3.18.1" />
+        <PackageReference Include="OpenIddict.Quartz" Version="7.5.0" />
+        <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.18.1" />
+        <PackageReference Include="Quartz.Extensions.Hosting" Version="3.18.1" />
         
     </ItemGroup>
 

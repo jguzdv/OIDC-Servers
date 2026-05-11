@@ -1,0 +1,20 @@
+<Solution>
+  <Folder Name="/demo/">
+    <Project Path="demo/Demo-WebApp/Demo-WebApp.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="LICENSE" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/OIDC.OpenIdDict.ConfigUI/OIDC.OpenIdDict.ConfigUI.csproj" />
+    <Project Path="src/OIDC.ProtocolServer.Model/OIDC.ProtocolServer.Model.csproj" />
+    <Project Path="src/OIDC.ProtocolServer/OIDC.ProtocolServer.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/OIDC.ProtocolServer.Model.Tests/OIDC.ProtocolServer.Model.Tests.csproj" />
+  </Folder>
+</Solution>
